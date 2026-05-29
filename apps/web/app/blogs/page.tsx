@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Calendar, User, ArrowLeft, Clock } from 'lucide-react'
+import { PublicHeader } from '@/components/public-header'
 
 interface Blog {
   id: string
@@ -38,6 +39,8 @@ export default function BlogsPage() {
 
   return (
     <div className="min-h-screen">
+      <PublicHeader />
+
       {/* Header */}
       <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">

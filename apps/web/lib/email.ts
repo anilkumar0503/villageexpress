@@ -254,3 +254,27 @@ export async function sendPasswordResetEmail(email: string, name: string, resetL
     `,
   })
 }
+
+export async function sendDeliveryOtpEmail(email: string, name: string, bookingNumber: string, otp: string): Promise<void> {
+  if (!smtpConfigured) {
+    console.log(`📧 [DELIVERY_OTP] ${email} → ${bookingNumber} OTP: ${otp}`)
+    return
+  }
+  await sendMail({
+    to: email,
+    subject: `Delivery OTP — ${bookingNumber}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#1d4ed8">Village Express</h2>
+        <p>Hi ${name},</p>
+        <p>Your booking <strong>${bookingNumber}</strong> is ready for delivery.</p>
+        <p>Please share this <strong>6-digit OTP</strong> with the point manager at the drop location:</p>
+        <div style="font-size:48px;font-weight:bold;letter-spacing:12px;padding:24px 0;color:#1d4ed8;text-align:center">
+          ${otp}
+        </div>
+        <p style="color:#666">This OTP is valid for <strong>7 days</strong>. Do not share with anyone except the point manager.</p>
+        <p>Track your parcel from your <a href="${process.env.NEXT_PUBLIC_APP_URL}/bookings/my">dashboard</a>.</p>
+      </div>
+    `,
+  })
+}

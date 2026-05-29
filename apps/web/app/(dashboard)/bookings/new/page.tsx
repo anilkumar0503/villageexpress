@@ -448,10 +448,11 @@ export default function NewBookingPage() {
 
       // If payment method is ONLINE, initiate Razorpay payment
       if (paymentMethod === 'ONLINE') {
+        const bookingId = data.data.id
         const orderRes = await fetch('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ bookingId: data.data.id }),
+          body: JSON.stringify({ bookingId }),
         })
         const orderData = await orderRes.json()
         if (!orderData.success) {
@@ -480,9 +481,10 @@ export default function NewBookingPage() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
               body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
+                bookingId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
               }),
             })
             const verifyData = await verifyRes.json()

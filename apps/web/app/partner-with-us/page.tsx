@@ -4,30 +4,12 @@ import Link from 'next/link'
 import { Truck, MapPin, Users, TrendingUp, Shield, Clock, ArrowRight, CheckCircle2, Store, Bike } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { PublicHeader } from '@/components/public-header'
 
 export default function PartnerWithUsPage() {
   return (
     <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <Truck className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">Village Express</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-sm font-medium hover:text-primary transition">Home</Link>
-              <Link
-                href="/login"
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground py-20 md:py-32 relative overflow-hidden">

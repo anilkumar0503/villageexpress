@@ -6,6 +6,7 @@ import { requireAuth, requirePermission } from '@/lib/auth/permissions'
 const updateSchema = z.object({
   status: z.enum(['PENDING', 'RECEIVED_AT_POINT', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'HANDED_OFF', 'DELIVERED']),
   assignedCaptainId: z.string().uuid().optional(),
+  receiverPhone: z.string().optional(),
 })
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -78,7 +79,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    const { status, assignedCaptainId } = parsed.data
+    const { status, assignedCaptainId, receiverPhone } = parsed.data
     const { id } = await params
 
     // Check if this is a direct booking (starts with "direct-")
@@ -152,6 +153,72 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
             },
           })
         }
+
+        // Reset captain availability when direct booking is delivered
+        await prisma.captainProfile.updateMany({
+          where: { userId: updatedBooking.assignedCaptainId },
+          data: { availabilityStatus: 'AVAILABLE' },
+        })
+
+        // Create PM commission for direct bookings on delivery (if not already created)
+        const dropLocationPM = await prisma.pointManagerProfile.findFirst({
+          where: { shopLocationId: updatedBooking.dropLocationId },
+          select: { userId: true },
+        })
+
+        if (dropLocationPM) {
+          // Check if PM commission already exists
+          const existingCommission = await prisma.commissionLedger.findFirst({
+            where: {
+              bookingSegmentId: `direct-${updatedBooking.id}`,
+              userId: dropLocationPM.userId,
+              role: 'POINT_MANAGER',
+            },
+          })
+
+          if (!existingCommission) {
+            // Look up commission rule
+            let commissionRule = await prisma.globalCommissionRule.findFirst({
+              where: {
+                OR: [
+                  { vehicleType: updatedBooking.vehicleType ?? null },
+                  { vehicleType: null },
+                ],
+                isActive: true,
+              },
+              orderBy: { vehicleType: 'desc' },
+            })
+
+            if (!commissionRule) {
+              commissionRule = await prisma.globalCommissionRule.findFirst({
+                where: { isActive: true },
+                orderBy: { vehicleType: 'desc' },
+              })
+            }
+
+            if (commissionRule) {
+              const pmAmount = (Number(updatedBooking.calculatedPrice) * Number(commissionRule.pmCommissionPct)) / 100
+              if (pmAmount > 0) {
+                await prisma.commissionLedger.create({
+                  data: {
+                    userId: dropLocationPM.userId,
+                    bookingSegmentId: `direct-${updatedBooking.id}`,
+                    role: 'POINT_MANAGER',
+                    amount: pmAmount,
+                  },
+                })
+              }
+            }
+          }
+        }
+      }
+
+      // Reset captain availability when direct booking is handed off (IN_TRANSIT)
+      if (status === 'IN_TRANSIT' && updatedBooking.assignedCaptainId) {
+        await prisma.captainProfile.updateMany({
+          where: { userId: updatedBooking.assignedCaptainId },
+          data: { availabilityStatus: 'AVAILABLE' },
+        })
       }
 
       return NextResponse.json({ success: true, data: updatedBooking })
@@ -202,6 +269,14 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     }
     if (status === 'DELIVERED') {
       updateData.deliveredAt = new Date()
+    }
+
+    // Update booking receiver phone if provided
+    if (receiverPhone && status === 'RECEIVED_AT_POINT') {
+      await prisma.booking.update({
+        where: { id: currentSegment.bookingId },
+        data: { receiverPhone },
+      })
     }
 
     // Assign captain if provided, otherwise preserve existing
@@ -291,7 +366,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     })
 
     // Auto-create commission ledger entries
-    if (status === 'RECEIVED_AT_POINT' && updatedSegment.assignedPointManagerId) {
+    if (status === 'ASSIGNED' && updatedSegment.assignedPointManagerId) {
       console.log('[COMMISSION] Creating PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
       console.log('[COMMISSION] Segment vehicleType:', (updatedSegment as any).vehicleType)
       console.log('[COMMISSION] Route segment ID:', updatedSegment.routeSegmentId)
@@ -420,7 +495,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         if (captainAmount > 0) {
           await prisma.commissionLedger.create({
             data: {
-              userId: updatedSegment.assignedCaptainId!,
+              userId: updatedSegment.assignedCaptainId,
               bookingSegmentId: updatedSegment.id,
               role: 'CAPTAIN',
               amount: captainAmount,
@@ -430,6 +505,43 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         } else {
           console.log('[COMMISSION] Captain commission amount is 0, skipping')
         }
+
+        // Create PM commission for segments that skip ASSIGNED status
+        if (updatedSegment.assignedPointManagerId) {
+          console.log('[COMMISSION] Checking for existing PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
+          // Check if PM commission already exists
+          const existingCommission = await prisma.commissionLedger.findFirst({
+            where: {
+              bookingSegmentId: updatedSegment.id,
+              userId: updatedSegment.assignedPointManagerId,
+              role: 'POINT_MANAGER',
+            },
+          })
+
+          console.log('[COMMISSION] Existing PM commission found:', existingCommission)
+          if (!existingCommission) {
+            console.log('[COMMISSION] Creating PM commission for segment on DELIVERED:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
+            const pmAmount = (bookingPrice * Number(commissionRule.pmCommissionPct)) / 100
+            console.log('[COMMISSION] PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
+            if (pmAmount > 0) {
+              await prisma.commissionLedger.create({
+                data: {
+                  userId: updatedSegment.assignedPointManagerId,
+                  bookingSegmentId: updatedSegment.id,
+                  role: 'POINT_MANAGER',
+                  amount: pmAmount,
+                },
+              })
+              console.log('[COMMISSION] PM commission created successfully on DELIVERED')
+            } else {
+              console.log('[COMMISSION] PM commission amount is 0, skipping')
+            }
+          } else {
+            console.log('[COMMISSION] PM commission already exists, skipping creation')
+          }
+        } else {
+          console.log('[COMMISSION] No assigned PM for segment, skipping PM commission')
+        }
       } else {
         console.log('[COMMISSION] No commission rule found for Captain')
       }
@@ -437,27 +549,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       console.log('[COMMISSION] Captain commission not created - status:', status, 'assignedCaptain:', updatedSegment.assignedCaptainId)
     }
 
-    // If this is the last segment and it's delivered, update booking status
-    if (status === 'DELIVERED') {
-      // Check if this is the last segment for the booking
-      const totalSegments = await prisma.bookingSegment.count({
-        where: { bookingId: currentSegment.bookingId },
-      })
-
-      const deliveredSegments = await prisma.bookingSegment.count({
-        where: {
-          bookingId: currentSegment.bookingId,
-          status: 'DELIVERED',
-        },
-      })
-
-      if (deliveredSegments === totalSegments) {
-        await prisma.booking.update({
-          where: { id: currentSegment.bookingId },
-          data: { status: 'DELIVERED' },
-        })
-      }
-    }
+    // Note: Booking status is NOT updated to DELIVERED here
+    // It will be updated to DELIVERED only after OTP validation
+    // This allows the OTP validation button to show for the final segment
 
     // If handed off, update next segment to RECEIVED_AT_POINT
     if (status === 'HANDED_OFF') {
@@ -474,6 +568,22 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           data: { status: 'RECEIVED_AT_POINT' },
         })
       }
+
+      // Reset captain availability when they hand off the parcel
+      if (updatedSegment.assignedCaptainId) {
+        await prisma.captainProfile.updateMany({
+          where: { userId: updatedSegment.assignedCaptainId },
+          data: { availabilityStatus: 'AVAILABLE' },
+        })
+      }
+    }
+
+    // Reset captain availability when segment is delivered
+    if (status === 'DELIVERED' && updatedSegment.assignedCaptainId) {
+      await prisma.captainProfile.updateMany({
+        where: { userId: updatedSegment.assignedCaptainId },
+        data: { availabilityStatus: 'AVAILABLE' },
+      })
     }
 
     return NextResponse.json({ success: true, data: updatedSegment })

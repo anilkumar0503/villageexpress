@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Star, ArrowLeft } from 'lucide-react'
+import { PublicHeader } from '@/components/public-header'
 
 interface Testimonial {
   id: string
@@ -36,6 +37,8 @@ export default function TestimonialsPage() {
 
   return (
     <div className="min-h-screen">
+      <PublicHeader />
+
       {/* Header */}
       <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">

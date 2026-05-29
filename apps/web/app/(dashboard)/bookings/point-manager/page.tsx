@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, PackageSearch, MapPin, CheckCircle, Truck, ArrowRight, Package, User, RefreshCw, X, IndianRupee, Wallet } from 'lucide-react'
+import { Loader2, PackageSearch, MapPin, CheckCircle, Truck, ArrowRight, Package, User, RefreshCw, X, IndianRupee, Wallet, Camera } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,11 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
+import { CameraCapture } from '@/components/camera-capture'
+import { FileUpload } from '@/components/file-upload'
+import { BookingTimeline } from '@/components/booking-timeline'
 
 type JourneyStop = {
   id: string
   sequenceOrder: number
   status: string
+  handedOffAt?: string | null
+  deliveredAt?: string | null
   routeSegment: {
     fromLocation: { id: string; pointName: string }
     toLocation: { id: string; pointName: string }
@@ -43,6 +48,8 @@ type BookingSegment = {
     codCollectedAt: string | null
     customer: { name: string; phone: string }
     segments: JourneyStop[]
+    createdAt: string
+    paidAt?: string | null
   }
   routeSegment: {
     fromLocation: { id: string; pointName: string; village: string }
@@ -122,6 +129,15 @@ export default function PMQueuePage() {
   const [submittingSettlement, setSubmittingSettlement] = useState(false)
   const [bankReferenceNumber, setBankReferenceNumber] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [validationImageDialog, setValidationImageDialog] = useState<{ bookingId: string; imageType: 'PICKUP' | 'DROP' } | null>(null)
+  const [otpValidationDialog, setOtpValidationDialog] = useState<{ bookingId: string } | null>(null)
+  const [otpInput, setOtpInput] = useState('')
+  const [validatingOtp, setValidatingOtp] = useState(false)
+  const [receiptDialog, setReceiptDialog] = useState<{ segmentId: string; bookingId: string } | null>(null)
+  const [receiverPhone, setReceiverPhone] = useState('')
+  const [deliveryConfirmationDialog, setDeliveryConfirmationDialog] = useState<{ segmentId: string; bookingId: string } | null>(null)
+  const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
+  const [deliveryImageUrl, setDeliveryImageUrl] = useState('')
   const [metrics, setMetrics] = useState({
     todayPickups: 0,
     todayDeliveries: 0,
@@ -284,21 +300,77 @@ export default function PMQueuePage() {
     }
   }
 
-  async function confirmReceipt(segmentId: string) {
-    setConfirming(segmentId)
-    const res = await fetch(`/api/bookings/segments/${segmentId}`, {
+  async function confirmReceipt(segmentId: string, bookingId: string) {
+    setReceiptDialog({ segmentId, bookingId })
+  }
+
+  async function submitReceipt() {
+    if (!receiptDialog) return
+    setConfirming(receiptDialog.segmentId)
+    const res = await fetch(`/api/bookings/segments/${receiptDialog.segmentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ status: 'RECEIVED_AT_POINT' }),
+      body: JSON.stringify({ status: 'RECEIVED_AT_POINT', receiverPhone }),
     })
     if (res.status === 401) {
       handleAuthError()
       setConfirming(null)
       return
     }
+    setReceiptDialog(null)
+    setReceiverPhone('')
     await fetchData()
     await fetchAllSegmentsForMetrics()
     setConfirming(null)
+  }
+
+  async function confirmDelivery(segmentId: string, bookingId: string) {
+    setDeliveryConfirmationDialog({ segmentId, bookingId })
+  }
+
+  async function submitDeliveryConfirmation() {
+    if (!deliveryConfirmationDialog) return
+    if (!deliveryImageUrl) {
+      alert('Please capture or upload a delivery confirmation image')
+      return
+    }
+    setConfirmingDelivery(deliveryConfirmationDialog.segmentId)
+
+    // Upload delivery validation image
+    const imageRes = await fetch(`/api/bookings/${deliveryConfirmationDialog.bookingId}/upload-validation-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ imageUrl: deliveryImageUrl, imageType: 'DROP' }),
+    })
+
+    if (imageRes.status === 401) {
+      handleAuthError()
+      setConfirmingDelivery(null)
+      return
+    }
+
+    if (!imageRes.ok) {
+      alert('Failed to upload delivery image')
+      setConfirmingDelivery(null)
+      return
+    }
+
+    // Update segment status to DELIVERED
+    const res = await fetch(`/api/bookings/segments/${deliveryConfirmationDialog.segmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ status: 'DELIVERED' }),
+    })
+    if (res.status === 401) {
+      handleAuthError()
+      setConfirmingDelivery(null)
+      return
+    }
+    setDeliveryConfirmationDialog(null)
+    setDeliveryImageUrl('')
+    await fetchData()
+    await fetchAllSegmentsForMetrics()
+    setConfirmingDelivery(null)
   }
 
   async function assignCaptain(segmentId: string) {
@@ -392,6 +464,59 @@ export default function PMQueuePage() {
       alert('Failed to process payment')
     } finally {
       setProcessingPayment(null)
+    }
+  }
+
+  async function handleValidationImageUpload(imageUrl: string) {
+    if (!validationImageDialog) return
+
+    try {
+      const res = await fetch(`/api/bookings/${validationImageDialog.bookingId}/upload-validation-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ imageUrl, imageType: validationImageDialog.imageType }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        await fetchData()
+        setValidationImageDialog(null)
+        alert('Validation image uploaded successfully')
+      } else {
+        alert(data.error || 'Failed to upload validation image')
+      }
+    } catch (err) {
+      console.error('Error uploading validation image:', err)
+      alert('Failed to upload validation image')
+    }
+  }
+
+  async function handleOtpValidation() {
+    if (!otpValidationDialog || !otpInput) {
+      alert('Please enter the OTP')
+      return
+    }
+
+    setValidatingOtp(true)
+    try {
+      const res = await fetch(`/api/bookings/${otpValidationDialog.bookingId}/validate-delivery-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ otp: otpInput }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        await fetchData()
+        setOtpValidationDialog(null)
+        setOtpInput('')
+        alert('Delivery validated successfully! Booking marked as delivered.')
+      } else {
+        alert(data.error || 'Failed to validate OTP')
+      }
+    } catch (err) {
+      console.error('Error validating OTP:', err)
+      alert('Failed to validate OTP')
+    } finally {
+      setValidatingOtp(false)
     }
   }
 
@@ -524,9 +649,12 @@ export default function PMQueuePage() {
             const meta = STATUS_META[displayStatus]
             const needsReceipt = s.status === 'PENDING' && s.booking.status !== 'CANCELLED'
             const needsCaptain = s.status === 'RECEIVED_AT_POINT' && !s.captain && s.booking.status !== 'CANCELLED'
+            const needsDeliveryConfirmation = s.status === 'OUT_FOR_DELIVERY' && s.booking.status !== 'CANCELLED' && s.pmRole === 'INCOMING'
+            const isLastSegment = s.sequenceOrder === s.booking.segments.length
+            const needsOtpValidation = s.status === 'DELIVERED' && s.booking.status !== 'DELIVERED' && s.booking.status !== 'CANCELLED' && isLastSegment
             return (
-              <Card key={s.id} className={`overflow-hidden transition-shadow hover:shadow-md ${needsReceipt || needsCaptain ? 'border-primary/30' : ''}`} data-testid={`segment-card-${s.id}`}>
-                {(needsReceipt || needsCaptain) && (
+              <Card key={s.id} className={`overflow-hidden transition-shadow hover:shadow-md ${needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation ? 'border-primary/30' : ''}`} data-testid={`segment-card-${s.id}`}>
+                {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation) && (
                   <div className="h-0.5 bg-primary w-full" />
                 )}
                 <CardContent className="p-4">
@@ -648,10 +776,13 @@ export default function PMQueuePage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Live Tracking Timeline */}
+                      <BookingTimeline booking={s.booking} segments={s.booking.segments} />
                     </div>
 
                     {/* Right: action area */}
-                    {(needsReceipt || needsCaptain || (s.booking.paymentMethod === 'COD' && !s.codCollectedAt && s.booking.paymentStatus !== 'PAID') || (s.booking.paymentStatus === 'PENDING_PAYMENT')) && (
+                    {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation || (s.booking.paymentMethod === 'COD' && !s.codCollectedAt && s.booking.paymentStatus !== 'PAID') || (s.booking.paymentStatus === 'PENDING_PAYMENT')) && (
                       <>
                         <Separator orientation="vertical" className="hidden sm:block h-auto self-stretch" />
                         <div className="sm:w-52 flex flex-col justify-center gap-2">
@@ -662,7 +793,7 @@ export default function PMQueuePage() {
                                 size="sm"
                                 className="w-full"
                                 disabled={confirming === s.id}
-                                onClick={() => confirmReceipt(s.id)}
+                                onClick={() => confirmReceipt(s.id, s.booking.id)}
                               >
                                 {confirming === s.id
                                   ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
@@ -734,6 +865,48 @@ export default function PMQueuePage() {
                               >
                                 <IndianRupee className="h-3.5 w-3.5 mr-2" />
                                 Collect COD
+                              </Button>
+                            </>
+                          )}
+                          {s.pmRole === 'INCOMING' && s.status === 'PENDING' && (
+                            <>
+                              <p className="text-xs font-medium text-muted-foreground">Capture pickup validation image</p>
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => setValidationImageDialog({ bookingId: s.booking.id, imageType: 'PICKUP' })}
+                              >
+                                <Camera className="h-3.5 w-3.5 mr-2" />
+                                Capture Pickup Image
+                              </Button>
+                            </>
+                          )}
+                          {s.pmRole === 'INCOMING' && s.status === 'OUT_FOR_DELIVERY' && (
+                            <>
+                              <p className="text-xs font-medium text-muted-foreground">Confirm delivery at your point?</p>
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                disabled={confirmingDelivery === s.id}
+                                onClick={() => confirmDelivery(s.id, s.booking.id)}
+                              >
+                                {confirmingDelivery === s.id
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                  : <CheckCircle className="h-3.5 w-3.5 mr-2" />}
+                                Confirm Delivery
+                              </Button>
+                            </>
+                          )}
+                          {s.status === 'DELIVERED' && s.booking.status !== 'DELIVERED' && s.booking.status !== 'CANCELLED' && isLastSegment && (
+                            <>
+                              <p className="text-xs font-medium text-muted-foreground">Validate delivery with customer OTP</p>
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => setOtpValidationDialog({ bookingId: s.booking.id })}
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                Validate OTP
                               </Button>
                             </>
                           )}
@@ -1136,6 +1309,170 @@ export default function PMQueuePage() {
                 <Wallet className="h-4 w-4 mr-2" />
               )}
               Submit Settlement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Validation Image Capture Dialog */}
+      <Dialog open={!!validationImageDialog} onOpenChange={(open) => !open && setValidationImageDialog(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {validationImageDialog?.imageType === 'PICKUP' ? 'Capture Pickup Validation Image' : 'Capture Drop Validation Image'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <CameraCapture
+              onCapture={handleValidationImageUpload}
+              onCancel={() => setValidationImageDialog(null)}
+            />
+            <div className="text-sm text-muted-foreground text-center">
+              Or upload an existing image
+            </div>
+            <FileUpload
+              folder="validation-images"
+              accept="image/jpeg,image/png,image/webp"
+              onUploadComplete={handleValidationImageUpload}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* OTP Validation Dialog */}
+      <Dialog open={!!otpValidationDialog} onOpenChange={(open) => !open && setOtpValidationDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Validate Delivery OTP</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Enter the 6-digit OTP provided by the customer to validate the delivery.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="otp">Delivery OTP</Label>
+              <Input
+                id="otp"
+                placeholder="Enter 6-digit OTP"
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                className="text-center text-2xl tracking-widest"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setOtpValidationDialog(null); setOtpInput('') }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleOtpValidation}
+              disabled={validatingOtp || otpInput.length !== 6}
+            >
+              {validatingOtp ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Validate & Complete Delivery
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Confirmation Dialog */}
+      <Dialog open={!!receiptDialog} onOpenChange={(open) => !open && setReceiptDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Parcel Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please enter the receiver's phone number to confirm receipt of the parcel at your location.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="receiverPhone">Receiver Phone Number</Label>
+              <Input
+                id="receiverPhone"
+                placeholder="Enter 10-digit phone number"
+                value={receiverPhone}
+                onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
+                className="text-center text-xl tracking-widest"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReceiptDialog(null); setReceiverPhone('') }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitReceipt}
+              disabled={confirming === receiptDialog?.segmentId || receiverPhone.length !== 10}
+            >
+              {confirming === receiptDialog?.segmentId ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirm Receipt
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delivery Confirmation Dialog */}
+      <Dialog open={!!deliveryConfirmationDialog} onOpenChange={(open) => !open && setDeliveryConfirmationDialog(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirm Delivery at Your Point</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The captain has arrived at your location with the parcel. Please capture a photo of the parcel to confirm receipt before proceeding to handover to the customer.
+            </p>
+            <CameraCapture
+              onCapture={(url) => setDeliveryImageUrl(url)}
+              onCancel={() => setDeliveryImageUrl('')}
+            />
+            <div className="text-sm text-muted-foreground text-center">
+              Or upload an existing image
+            </div>
+            <FileUpload
+              folder="validation-images"
+              accept="image/jpeg,image/png,image/webp"
+              onUploadComplete={(url) => setDeliveryImageUrl(url)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeliveryConfirmationDialog(null); setDeliveryImageUrl('') }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitDeliveryConfirmation}
+              disabled={confirmingDelivery === deliveryConfirmationDialog?.segmentId || !deliveryImageUrl}
+            >
+              {confirmingDelivery === deliveryConfirmationDialog?.segmentId ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirm Delivery
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

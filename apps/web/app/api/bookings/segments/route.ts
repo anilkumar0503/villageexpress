@@ -114,6 +114,8 @@ export async function GET(req: NextRequest) {
           status: true,
           codCollectedAt: true,
           vehicleType: true,
+          handedOffAt: true,
+          deliveredAt: true,
           booking: {
             select: {
               id: true,
@@ -126,6 +128,8 @@ export async function GET(req: NextRequest) {
               paymentStatus: true,
               paymentMethod: true,
               codCollectedAt: true,
+              createdAt: true,
+              paidAt: true,
               customer: {
                 select: { id: true, name: true, phone: true },
               },
@@ -135,6 +139,8 @@ export async function GET(req: NextRequest) {
                   id: true,
                   sequenceOrder: true,
                   status: true,
+                  handedOffAt: true,
+                  deliveredAt: true,
                   routeSegment: {
                     select: {
                       fromLocation: { select: { id: true, pointName: true } },
@@ -227,7 +233,7 @@ export async function GET(req: NextRequest) {
       ASSIGNED: 'ASSIGNED',
       PICKED_UP: 'PICKED_UP',
       IN_TRANSIT: 'IN_TRANSIT',
-      OUT_FOR_DELIVERY: 'IN_TRANSIT',
+      OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
       DELIVERED: 'DELIVERED',
       CANCELLED: 'CANCELLED',
     }

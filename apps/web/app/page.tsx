@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Truck, MapPin, Clock, Shield, Star, ArrowRight, Smartphone, CheckCircle2, TrendingUp, Users, Package, Scale, X, Bike, Car } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { PublicHeader } from '@/components/public-header'
 
 interface Location {
   id: string
@@ -247,30 +248,7 @@ export default function LandingPage() {
   }
   return (
     <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <Truck className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">Village Express</span>
-            </div>
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="/about" className="text-sm font-medium hover:text-primary transition">About Us</Link>
-              <Link href="/partner-with-us" className="text-sm font-medium hover:text-primary transition">Partner With Us</Link>
-              <Link href="/testimonials" className="text-sm font-medium hover:text-primary transition">Testimonials</Link>
-              <Link href="/blogs" className="text-sm font-medium hover:text-primary transition">Blog</Link>
-              <Link href="/contact" className="text-sm font-medium hover:text-primary transition">Contact</Link>
-            </div>
-            <Link
-              href="/login"
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground py-16 md:py-24 relative overflow-hidden">

@@ -4,7 +4,7 @@ import { prisma } from '@ve/db'
 import { generateBookingNumber } from '@ve/utils'
 import { requireAuth, requirePermission } from '@/lib/auth/permissions'
 import { resolvePrice, autoAssignPointManager } from '@/lib/booking/pricing-service'
-import { sendNewBookingToPM } from '@/lib/email'
+import { sendNewBookingToPM, sendDeliveryOtpEmail } from '@/lib/email'
 
 type DistanceTier = {
   minDistance: number
@@ -279,8 +279,8 @@ export async function POST(req: NextRequest) {
 
     estimatedDeliveryDays = priceResult.estimatedDeliveryDays
 
-    // Use finalPrice from request if provided, otherwise calculate server-side
-    let finalPrice = body.finalPrice || priceResult.finalPrice
+    // Use finalPrice from request if provided (and no coupon), otherwise calculate server-side
+    let finalPrice = couponId ? priceResult.finalPrice : (body.finalPrice || priceResult.finalPrice)
     let discountAmount = 0
     let couponData = null
 
@@ -344,6 +344,11 @@ export async function POST(req: NextRequest) {
       attempts++
     } while (attempts < 5)
 
+    // Generate delivery OTP for customer
+    const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString()
+    const deliveryOtpExpiresAt = new Date()
+    deliveryOtpExpiresAt.setDate(deliveryOtpExpiresAt.getDate() + 7) // OTP valid for 7 days
+
     // Create booking with segments if route exists
     const booking = await prisma.booking.create({
       data: {
@@ -366,6 +371,8 @@ export async function POST(req: NextRequest) {
         status: paymentMethod === 'COD' ? 'CONFIRMED' : 'PENDING',
         receiverName: body.receiverName || null,
         receiverPhone: body.receiverPhone || null,
+        deliveryOtp,
+        deliveryOtpExpiresAt,
         ...(selectedRoute && {
           segments: {
             create: selectedRoute.segments.map((segment) => ({
@@ -396,6 +403,17 @@ export async function POST(req: NextRequest) {
           },
         }),
       ])
+    }
+
+    // Send delivery OTP to customer
+    const customer = await prisma.user.findUnique({
+      where: { id: session!.userId },
+      select: { name: true, email: true },
+    })
+    if (customer?.email) {
+      sendDeliveryOtpEmail(customer.email, customer.name, booking.bookingNumber, deliveryOtp).catch((err) => {
+        console.error('Failed to send delivery OTP email:', err)
+      })
     }
 
     // Handle wallet payment - defer debit until captain assignment
@@ -438,7 +456,11 @@ export async function POST(req: NextRequest) {
         select: { name: true, email: true },
       })
       if (pm?.email) {
-        sendNewBookingToPM(pm.email, pm.name, booking.bookingNumber, booking.pickupLocation.pointName).catch(() => {})
+        const pickupLoc = await prisma.location.findUnique({
+          where: { id: pickupLocationId },
+          select: { pointName: true },
+        })
+        sendNewBookingToPM(pm.email, pm.name, booking.bookingNumber, pickupLoc?.pointName || '').catch(() => {})
       }
     }
 

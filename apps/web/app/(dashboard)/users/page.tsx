@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Loader2, User, CheckCircle2, XCircle, Clock, Eye, Edit, MoreHorizontal, MapPin, Save, X, Image as ImageIcon } from 'lucide-react'
+import { Search, Loader2, User, CheckCircle2, XCircle, Clock, Eye, Edit, MoreHorizontal, MapPin, Save, X, Image as ImageIcon, RefreshCw } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +38,7 @@ type User = {
     aadhaarPhoto: string | null
     drivingLicense: string
     licensePhoto: string | null
+    availabilityStatus: string
     pointAssignments?: {
       locationId: string
       location: {
@@ -83,6 +84,7 @@ export default function UsersPage() {
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([])
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([])
   const [skipNextEffect, setSkipNextEffect] = useState(false)
+  const [resettingAvailability, setResettingAvailability] = useState<string | null>(null)
 
   // Reload points when selected districts change (skip initial load)
   useEffect(() => {
@@ -264,6 +266,39 @@ export default function UsersPage() {
     setAvailablePoints(allPoints)
     setSelectedDistricts(existingDistricts)
     setSelectedPoints(existingPointIds)
+  }
+
+  async function resetCaptainAvailability(userId: string) {
+    setResettingAvailability(userId)
+    try {
+      const res = await fetch(`/api/admin/captains/${userId}/reset-availability`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setUsers((prev) => prev.map((u) => {
+          if (u.id === userId && u.captainProfile) {
+            return {
+              ...u,
+              captainProfile: {
+                ...u.captainProfile,
+                availabilityStatus: 'AVAILABLE',
+              },
+            }
+          }
+          return u
+        }))
+        alert('Captain availability reset to AVAILABLE')
+      } else {
+        alert(data.error || 'Failed to reset availability')
+      }
+    } catch (err) {
+      console.error('Failed to reset availability:', err)
+      alert('Failed to reset availability')
+    } finally {
+      setResettingAvailability(null)
+    }
   }
 
   async function saveUser() {
@@ -457,9 +492,26 @@ export default function UsersPage() {
                           <Edit className="h-4 w-4" />
                         </Button>
                         {role === 'CAPTAIN' && (
-                          <Button variant="ghost" size="sm" onClick={() => openCaptainPointsEditor(user)}>
-                            <MapPin className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => openCaptainPointsEditor(user)}>
+                              <MapPin className="h-4 w-4" />
+                            </Button>
+                            {user.captainProfile?.availabilityStatus === 'BUSY' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => resetCaptainAvailability(user.id)}
+                                disabled={resettingAvailability === user.id}
+                                title="Reset availability to AVAILABLE"
+                              >
+                                {resettingAvailability === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>

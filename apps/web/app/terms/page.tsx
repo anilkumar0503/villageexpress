@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import { PublicHeader } from '@/components/public-header'
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen">
+      <PublicHeader />
+
       {/* Header */}
       <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">

@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Truck, PackageSearch, MapPin, ChevronRight } from 'lucide-react'
+import { Loader2, Truck, PackageSearch, MapPin, ChevronRight, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/use-auth'
+import { CameraCapture } from '@/components/camera-capture'
+import { FileUpload } from '@/components/file-upload'
 
 type AvailabilityStatus = 'AVAILABLE' | 'BUSY' | 'OFF_DUTY'
 type BookingSegment = {
@@ -39,14 +42,12 @@ const NEXT_STATUS: Record<string, string> = {
   ASSIGNED: 'PICKED_UP',
   PICKED_UP: 'IN_TRANSIT',
   IN_TRANSIT: 'OUT_FOR_DELIVERY',
-  OUT_FOR_DELIVERY: 'DELIVERED',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   ASSIGNED: 'Mark Picked Up',
   PICKED_UP: 'Mark In Transit',
   IN_TRANSIT: 'Mark Out for Delivery',
-  OUT_FOR_DELIVERY: 'Mark Delivered',
 }
 
 export default function CaptainPage() {
@@ -59,6 +60,8 @@ export default function CaptainPage() {
   const [page, setPage] = useState(1)
   const pageSize = 50
   const [total, setTotal] = useState(0)
+  const [imageCaptureDialog, setImageCaptureDialog] = useState<{ segmentId: string; currentStatus: string } | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   async function fetchData() {
     const params = new URLSearchParams({ pageSize: String(pageSize), page: String(page) })
@@ -82,6 +85,13 @@ export default function CaptainPage() {
   async function advanceStatus(segmentId: string, currentStatus: string) {
     const next = NEXT_STATUS[currentStatus]
     if (!next) return
+
+    // Require image capture before marking as PICKED_UP
+    if (next === 'PICKED_UP') {
+      setImageCaptureDialog({ segmentId, currentStatus })
+      return
+    }
+
     setAdvancing(segmentId)
     await fetch(`/api/bookings/segments/${segmentId}`, {
       method: 'PUT',
@@ -92,6 +102,60 @@ export default function CaptainPage() {
     setAdvancing(null)
   }
 
+  async function handleImageCapture(imageUrl: string) {
+    if (!imageCaptureDialog) return
+    setUploadingImage(true)
+
+    try {
+      // First get the segment to find the booking ID
+      const segmentRes = await fetch(`/api/bookings/segments/${imageCaptureDialog.segmentId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const segmentData = await segmentRes.json()
+
+      if (!segmentData.success || !segmentData.data.booking) {
+        alert('Failed to get booking information')
+        setUploadingImage(false)
+        return
+      }
+
+      const bookingId = segmentData.data.booking.id
+
+      // Upload the validation image to the booking
+      const res = await fetch(`/api/bookings/${bookingId}/upload-validation-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ imageUrl, imageType: 'PICKUP' }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          // Now advance the status after image is uploaded
+          const next = NEXT_STATUS[imageCaptureDialog.currentStatus]
+          setAdvancing(imageCaptureDialog.segmentId)
+          await fetch(`/api/bookings/segments/${imageCaptureDialog.segmentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ status: next }),
+          })
+          await fetchData()
+          setAdvancing(null)
+          setImageCaptureDialog(null)
+        } else {
+          alert(data.error || 'Failed to upload image')
+        }
+      } else {
+        alert('Failed to upload image')
+      }
+    } catch (err) {
+      console.error('Failed to upload image:', err)
+      alert('Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   async function handleAvailabilityChange(status: AvailabilityStatus) {
     setToggling(true)
     const res = await fetch('/api/profile/availability', {
@@ -100,7 +164,18 @@ export default function CaptainPage() {
       body: JSON.stringify({ availabilityStatus: status }),
     })
     const data = await res.json()
-    if (data.success) setAvailability(data.data.availabilityStatus)
+    if (data.success) {
+      setAvailability(data.data.availabilityStatus)
+    } else {
+      if (data.bookings) {
+        const segmentBookings = data.bookings.segments.map((b: any) => b.bookingNumber).join(', ')
+        const directBookings = data.bookings.direct.map((b: any) => b.bookingNumber).join(', ')
+        const allBookings = [segmentBookings, directBookings].filter(Boolean).join(', ')
+        alert(`${data.error}\n\nActive bookings: ${allBookings}`)
+      } else {
+        alert(data.error || 'Failed to update availability')
+      }
+    }
     setToggling(false)
   }
 
@@ -188,19 +263,31 @@ export default function CaptainPage() {
                   {availability === 'OFF_DUTY' && 'You are not accepting new bookings'}
                 </p>
               </div>
-              <Select
-                value={availability}
-                onValueChange={(v) => handleAvailabilityChange(v as AvailabilityStatus)}
-                disabled={toggling || availability === 'BUSY'}
-              >
-                <SelectTrigger className="w-40">
-                  {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : <SelectValue />}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AVAILABLE">Available</SelectItem>
-                  <SelectItem value="OFF_DUTY">Off Duty</SelectItem>
-                </SelectContent>
-              </Select>
+              {availability === 'BUSY' ? (
+                <Button
+                  size="sm"
+                  onClick={() => handleAvailabilityChange('AVAILABLE')}
+                  disabled={toggling}
+                  variant="outline"
+                >
+                  {toggling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Reset to Available
+                </Button>
+              ) : (
+                <Select
+                  value={availability}
+                  onValueChange={(v) => handleAvailabilityChange(v as AvailabilityStatus)}
+                  disabled={toggling}
+                >
+                  <SelectTrigger className="w-40">
+                    {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : <SelectValue />}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AVAILABLE">Available</SelectItem>
+                    <SelectItem value="OFF_DUTY">Off Duty</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </CardContent>
           </Card>
 
@@ -328,6 +415,32 @@ export default function CaptainPage() {
           </div>
         </div>
       )}
+
+      {/* Image Capture Dialog */}
+      <Dialog open={!!imageCaptureDialog} onOpenChange={(open) => !open && setImageCaptureDialog(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Capture Pickup Confirmation Image</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please capture a photo of the parcel before marking it as picked up for verification purposes.
+            </p>
+            <CameraCapture
+              onCapture={handleImageCapture}
+              onCancel={() => setImageCaptureDialog(null)}
+            />
+            <div className="text-sm text-muted-foreground text-center">
+              Or upload an existing image
+            </div>
+            <FileUpload
+              folder="validation-images"
+              accept="image/jpeg,image/png,image/webp"
+              onUploadComplete={handleImageCapture}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
