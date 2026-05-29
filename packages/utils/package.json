@@ -1,0 +1,13 @@
+{
+  "name": "@ve/utils",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20"
+  }
+}
