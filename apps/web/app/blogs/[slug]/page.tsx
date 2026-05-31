@@ -1,9 +1,7 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { Calendar, User, ArrowLeft, Clock } from 'lucide-react'
+import { Calendar, User, ArrowLeft } from 'lucide-react'
+import { prisma } from '@ve/db'
+import { notFound } from 'next/navigation'
 
 interface Blog {
   id: string
@@ -15,56 +13,96 @@ interface Blog {
   author: string | null
   publishedAt: string | null
   createdAt: string
+  // SEO fields
+  metaTitle: string | null
+  metaDescription: string | null
+  metaKeywords: string | null
+  ogImage: string | null
+  canonicalUrl: string | null
+  // Relations
+  categories: { id: string; category: { id: string; name: string; slug: string } }[]
+  tags: { id: string; tag: { id: string; name: string; slug: string } }[]
 }
 
-export default function BlogDetailPage() {
-  const params = useParams()
-  const [blog, setBlog] = useState<Blog | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
+interface Props {
+  params: Promise<{ slug: string }>
+}
 
-  useEffect(() => {
-    async function fetchBlog() {
-      try {
-        const response = await fetch(`/api/blogs?slug=${params.slug}`)
-        const data = await response.json()
-        if (data.success && data.data) {
-          setBlog(data.data)
-        } else {
-          setNotFound(true)
-        }
-      } catch (error) {
-        console.error('Failed to fetch blog:', error)
-        setNotFound(true)
-      } finally {
-        setLoading(false)
-      }
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params
+  
+  const blog = await prisma.blog.findUnique({
+    where: { slug, isPublished: true },
+    select: {
+      title: true,
+      excerpt: true,
+      metaTitle: true,
+      metaDescription: true,
+      metaKeywords: true,
+      ogImage: true,
+      canonicalUrl: true,
+      coverImage: true,
+    },
+  })
+
+  if (!blog) {
+    return {
+      title: 'Blog Not Found',
     }
-    fetchBlog()
-  }, [params.slug])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">Loading blog...</p>
-        </div>
-      </div>
-    )
   }
 
-  if (notFound || !blog) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Blog Not Found</h1>
-          <Link href="/blogs" className="text-primary hover:underline">
-            Back to Blogs
-          </Link>
-        </div>
-      </div>
-    )
+  const title = blog.metaTitle || blog.title
+  const description = blog.metaDescription || blog.excerpt || 'Read this blog post on Village Express'
+  const ogImage = blog.ogImage || blog.coverImage
+  const canonicalUrl = blog.canonicalUrl
+
+  return {
+    title,
+    description,
+    keywords: blog.metaKeywords,
+    openGraph: {
+      title,
+      description,
+      images: ogImage ? [{ url: ogImage }] : undefined,
+      type: 'article',
+      publishedTime: blog.publishedAt ? new Date(blog.publishedAt).toISOString() : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+    ...(canonicalUrl && { alternates: { canonical: canonicalUrl } }),
+  }
+}
+
+async function getBlog(slug: string): Promise<Blog | null> {
+  const blog = await prisma.blog.findUnique({
+    where: { slug, isPublished: true },
+    include: {
+      categories: {
+        include: {
+          category: true,
+        },
+      },
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
+  })
+
+  return blog
+}
+
+export default async function BlogDetailPage({ params }: Props) {
+  const { slug } = await params
+  const blog = await getBlog(slug)
+
+  if (!blog) {
+    notFound()
   }
 
   return (
@@ -91,6 +129,21 @@ export default function BlogDetailPage() {
               </div>
             )}
           </div>
+          {/* Categories and Tags */}
+          {(blog.categories.length > 0 || blog.tags.length > 0) && (
+            <div className="flex items-center gap-2 mt-4 text-primary-foreground/90 text-sm">
+              {blog.categories.map((cat) => (
+                <span key={cat.id} className="bg-primary-foreground/20 px-2 py-1 rounded">
+                  {cat.category.name}
+                </span>
+              ))}
+              {blog.tags.map((tag) => (
+                <span key={tag.id} className="bg-primary-foreground/20 px-2 py-1 rounded">
+                  #{tag.tag.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

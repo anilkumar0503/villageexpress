@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
 import { z } from 'zod'
+import { sendWithdrawalRequestEmail } from '@/lib/email'
 
 const withdrawalSchema = z.object({
   amount: z.number().positive(),
@@ -114,6 +115,40 @@ export async function POST(req: NextRequest) {
         },
       },
     })
+
+    // Send email notification to admins
+    const user = await prisma.user.findUnique({
+      where: { id: session!.userId },
+      select: { name: true, email: true },
+    })
+    
+    // Get admin emails
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            role: {
+              name: { in: ['ADMIN', 'SUPER_ADMIN'] },
+            },
+          },
+        },
+      },
+      select: { email: true },
+    })
+    
+    if (user && adminUsers.length > 0) {
+      for (const admin of adminUsers) {
+        if (admin.email) {
+          await sendWithdrawalRequestEmail(
+            admin.email,
+            user.name,
+            user.email || '',
+            amount,
+            withdrawal.id,
+          )
+        }
+      }
+    }
 
     return NextResponse.json({ success: true, data: withdrawal })
   } catch (err) {

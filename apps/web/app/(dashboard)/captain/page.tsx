@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Truck, PackageSearch, MapPin, ChevronRight, Camera } from 'lucide-react'
+import { Loader2, Truck, PackageSearch, MapPin, ChevronRight, Camera, FileText, AlertCircle, Upload, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -62,6 +62,10 @@ export default function CaptainPage() {
   const [total, setTotal] = useState(0)
   const [imageCaptureDialog, setImageCaptureDialog] = useState<{ segmentId: string; currentStatus: string } | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [kycDialog, setKycDialog] = useState<{ documentType: 'AADHAAR' | 'LICENSE' } | null>(null)
+  const [resubmitting, setResubmitting] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
+  const [userStatus, setUserStatus] = useState<{ approvalStatus: string; isActive: boolean } | null>(null)
 
   async function fetchData() {
     const params = new URLSearchParams({ pageSize: String(pageSize), page: String(page) })
@@ -70,8 +74,15 @@ export default function CaptainPage() {
       fetch(`/api/bookings/segments/my?${params}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
     ])
     const [profileData, segmentsData] = await Promise.all([profileRes.json(), segmentsRes.json()])
-    if (profileData.success && profileData.data.captainProfile) {
-      setAvailability(profileData.data.captainProfile.availabilityStatus)
+    if (profileData.success) {
+      if (profileData.data.captainProfile) {
+        setAvailability(profileData.data.captainProfile.availabilityStatus)
+        setProfile(profileData.data.captainProfile)
+      }
+      setUserStatus({
+        approvalStatus: profileData.data.approvalStatus,
+        isActive: profileData.data.isActive,
+      })
     }
     if (segmentsData.success) {
       setSegments(segmentsData.data.items)
@@ -179,6 +190,24 @@ export default function CaptainPage() {
     setToggling(false)
   }
 
+  async function handleKycResubmit(documentType: 'AADHAAR' | 'LICENSE', documentNumber?: string, documentPhoto?: string) {
+    setResubmitting(true)
+    const res = await fetch('/api/profile/kyc/resubmit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ documentType, documentNumber, documentPhoto }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setProfile(data.data)
+      setKycDialog(null)
+      alert('Document submitted for verification')
+    } else {
+      alert(data.error || 'Failed to submit document')
+    }
+    setResubmitting(false)
+  }
+
   const [earnings, setEarnings] = useState<{ pending: number; approved: number; paid: number } | null>(null)
 
   useEffect(() => {
@@ -199,7 +228,44 @@ export default function CaptainPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Captain Dashboard</h1>
 
-     
+      {/* Account Status Banner */}
+      {userStatus && (
+        <Card className={
+          userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
+            ? 'border-green-200 bg-green-50 dark:bg-green-900/10'
+            : userStatus.approvalStatus === 'REJECTED'
+            ? 'border-red-200 bg-red-50 dark:bg-red-900/10'
+            : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10'
+        }>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : userStatus.approvalStatus === 'REJECTED' ? (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              ) : (
+                <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
+              )}
+              <div>
+                <p className="font-medium">
+                  {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
+                    ? 'Account Active'
+                    : userStatus.approvalStatus === 'REJECTED'
+                    ? 'Registration Rejected'
+                    : 'Registration Pending Approval'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
+                    ? 'You can start accepting deliveries'
+                    : userStatus.approvalStatus === 'REJECTED'
+                    ? 'Your registration was rejected. Please contact support for more information.'
+                    : 'Your registration is under review. You will be notified once approved.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Two-column layout: Left (Stats + Availability + Active), Right (Completed) */}
       <div className="grid gap-6 sm:grid-cols-5">
@@ -240,6 +306,78 @@ export default function CaptainPage() {
                   <p className="text-lg font-bold text-green-600">₹{earnings.paid.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">Paid</p>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* KYC Status */}
+          {profile && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="h-5 w-5" />
+                  KYC Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Aadhaar Card</span>
+                    <Badge variant={
+                      profile.aadhaarVerificationStatus === 'VERIFIED' ? 'default' :
+                      profile.aadhaarVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                    }>
+                      {profile.aadhaarVerificationStatus || 'PENDING'}
+                    </Badge>
+                  </div>
+                  {profile.aadhaarVerificationStatus === 'REJECTED' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setKycDialog({ documentType: 'AADHAAR' })}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Resubmit
+                    </Button>
+                  )}
+                </div>
+                {profile.aadhaarRejectionReason && (
+                  <p className="text-xs text-destructive flex items-center gap-1 ml-6">
+                    <AlertCircle className="h-3 w-3" />
+                    {profile.aadhaarRejectionReason}
+                  </p>
+                )}
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Driving License</span>
+                    <Badge variant={
+                      profile.licenseVerificationStatus === 'VERIFIED' ? 'default' :
+                      profile.licenseVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                    }>
+                      {profile.licenseVerificationStatus || 'PENDING'}
+                    </Badge>
+                  </div>
+                  {profile.licenseVerificationStatus === 'REJECTED' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setKycDialog({ documentType: 'LICENSE' })}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Resubmit
+                    </Button>
+                  )}
+                </div>
+                {profile.licenseRejectionReason && (
+                  <p className="text-xs text-destructive flex items-center gap-1 ml-6">
+                    <AlertCircle className="h-3 w-3" />
+                    {profile.licenseRejectionReason}
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -438,6 +576,48 @@ export default function CaptainPage() {
               accept="image/jpeg,image/png,image/webp"
               onUploadComplete={handleImageCapture}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* KYC Resubmit Dialog */}
+      <Dialog open={!!kycDialog} onOpenChange={(open) => !open && setKycDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Resubmit {kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar Card' : 'Driving License'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please upload a clear photo of your {kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar card' : 'driving license'} for verification.
+            </p>
+            <FileUpload
+              folder="kyc-documents"
+              accept="image/jpeg,image/png,image/webp"
+              onUploadComplete={(url) => handleKycResubmit(kycDialog!.documentType, undefined, url)}
+            />
+            <div className="text-sm text-muted-foreground text-center">
+              Or enter document number
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar Number' : 'License Number'}
+                className="flex-1 px-3 py-2 border rounded-md text-sm"
+                id="kyc-number"
+              />
+              <Button
+                size="sm"
+                disabled={resubmitting}
+                onClick={() => {
+                  const number = (document.getElementById('kyc-number') as HTMLInputElement)?.value
+                  if (number) handleKycResubmit(kycDialog!.documentType, number)
+                }}
+              >
+                {resubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

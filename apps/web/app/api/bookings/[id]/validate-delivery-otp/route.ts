@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@ve/db'
 import { requireAuth, requirePermission } from '@/lib/auth/permissions'
+import { sendReviewRequestEmail } from '@/lib/email'
 
 const schema = z.object({
   otp: z.string().length(6),
@@ -28,6 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       dropLocationId: true,
       status: true,
       dropValidationImage: true,
+      bookingNumber: true,
+      customerId: true,
     },
   })
 
@@ -143,6 +146,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       }
     }
+  }
+
+  // Send review request email to customer
+  const customer = await prisma.user.findUnique({
+    where: { id: booking.customerId },
+    select: { name: true, email: true },
+  })
+  if (customer?.email) {
+    await sendReviewRequestEmail(customer.email, customer.name, booking.bookingNumber)
   }
 
   return NextResponse.json({ success: true, message: 'Delivery validated successfully' })

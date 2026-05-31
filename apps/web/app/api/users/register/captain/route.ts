@@ -9,14 +9,6 @@ const schema = z.object({
   email: z.string().email(),
   phone: z.string().min(10).max(10),
   password: z.string().min(8),
-  aadhaarNumber: z.string().length(12),
-  aadhaarPhoto: z.string().url().optional(),
-  drivingLicense: z.string().min(5),
-  licensePhoto: z.string().url().optional(),
-  vehicleType: z.enum(['BIKE', 'AUTO', 'MINI_VAN', 'VAN']),
-  vehicleNumber: z.string().min(4),
-  districtIds: z.array(z.string().min(2)).min(1),
-  selectedPoints: z.array(z.string().uuid()).min(1),
 })
 
 export async function POST(req: NextRequest) {
@@ -31,16 +23,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const {
-      name, email, phone, password,
-      aadhaarNumber, aadhaarPhoto,
-      drivingLicense, licensePhoto,
-      vehicleType, vehicleNumber, districtIds,
-      selectedPoints,
-    } = parsed.data
-
-    // Use the first district as the primary district
-    const districtId = districtIds[0]
+    const { name, email, phone, password } = parsed.data
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { phone }] },
@@ -71,17 +54,8 @@ export async function POST(req: NextRequest) {
           : undefined,
         captainProfile: {
           create: {
-            aadhaarNumber,
-            aadhaarPhoto,
-            drivingLicense,
-            licensePhoto,
-            vehicleType,
-            vehicleNumber,
-            districtId,
+            onboardingStatus: 'NOT_STARTED',
             availabilityStatus: 'OFF_DUTY',
-            pointAssignments: {
-              create: selectedPoints.map((locationId) => ({ locationId })),
-            },
           },
         },
       },
@@ -90,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'KYC submitted. You will be notified once your documents are verified.',
+        message: 'Registration successful. Please complete your onboarding to start accepting deliveries.',
         data: { id: user.id, displayId: user.displayId },
       },
       { status: 201 },

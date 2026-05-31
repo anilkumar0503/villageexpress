@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@ve/db'
 import { requireAuth, requirePermission } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/lib/auth/session'
+import { sendBookingModifiedEmail } from '@/lib/email'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -146,6 +147,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     Object.entries(parsed.data).filter(([_, v]) => v !== undefined)
   )
 
+  // Generate changes summary for email
+  const changes = Object.entries(updateData)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(', ')
+
   const updated = await prisma.booking.update({
     where: { id },
     data: updateData,
@@ -184,6 +190,16 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       result: 'GRANTED',
     },
   })
+
+  // Send booking modification email to customer
+  if (updated.customer.email && changes) {
+    await sendBookingModifiedEmail(
+      updated.customer.email,
+      updated.customer.name,
+      updated.bookingNumber,
+      changes,
+    )
+  }
 
   return NextResponse.json({ success: true, data: updated })
 }

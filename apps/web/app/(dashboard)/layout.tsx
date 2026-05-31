@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard, PackageSearch, MapPin,
-  Users, CheckSquare, Settings, LogOut, Menu, X, ChevronRight, Truck, ShieldCheck, UserCircle, Plus, Route, IndianRupee, QrCode, Percent, Wallet, Bell,
+  Users, CheckSquare, Settings, LogOut, Menu, X, ChevronRight, Truck, ShieldCheck, UserCircle, Plus, Route, IndianRupee, QrCode, Percent, Wallet, Bell, FileText, Folder, Tag, MessageSquare, Mail,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -59,6 +59,16 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Locations', href: '/locations', icon: MapPin, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Routes', href: '/routes', icon: Route, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Reports', href: '/reports', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN', 'POINT_MANAGER'] },
+    ],
+  },
+  {
+    title: 'CMS',
+    items: [
+      { label: 'Blogs', href: '/admin-blogs', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { label: 'Blog Categories', href: '/admin-blog-categories', icon: Folder, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { label: 'Blog Tags', href: '/admin-blog-tags', icon: Tag, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { label: 'Testimonials', href: '/admin-testimonials', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { label: 'Contact Submissions', href: '/admin-contact-submissions', icon: Mail, roles: ['SUPER_ADMIN', 'ADMIN'] },
     ],
   },
   {

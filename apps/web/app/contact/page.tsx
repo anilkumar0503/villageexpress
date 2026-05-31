@@ -15,11 +15,32 @@ export default function ContactPage() {
   })
   const [submitted, setSubmitted] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json()
+      
+      if (data.success) {
+        setSubmitted(true)
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        })
+        setTimeout(() => setSubmitted(false), 3000)
+      } else {
+        alert('Failed to submit form. Please try again.')
+      }
+    } catch (err) {
+      alert('Failed to submit form. Please try again.')
+    }
   }
 
   return (

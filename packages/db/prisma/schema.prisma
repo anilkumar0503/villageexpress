@@ -136,6 +136,25 @@ enum CommissionRole {
   POINT_MANAGER
 }
 
+enum ContactSubmissionStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum KYCVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
 model Location {
@@ -284,24 +303,32 @@ model PointManagerProfile {
 }
 
 model CaptainProfile {
-  id                 String             @id @default(uuid())
-  userId             String             @unique
-  aadhaarNumber      String
-  aadhaarPhoto       String?
-  drivingLicense     String
-  licensePhoto       String?
-  vehicleType        VehicleType
-  vehicleNumber      String
-  districtId         String
-  availabilityStatus AvailabilityStatus @default(OFF_DUTY)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                        String             @id @default(uuid())
+  userId                    String             @unique
+  aadhaarNumber             String?
+  aadhaarPhoto              String?
+  aadhaarVerificationStatus KYCVerificationStatus @default(PENDING)
+  aadhaarRejectionReason    String?
+  drivingLicense            String?
+  licensePhoto              String?
+  licenseVerificationStatus  KYCVerificationStatus @default(PENDING)
+  licenseRejectionReason    String?
+  vehicleType               VehicleType?
+  vehicleNumber             String?
+  districtId                String?
+  availabilityStatus        AvailabilityStatus @default(OFF_DUTY)
+  onboardingStatus          OnboardingStatus   @default(NOT_STARTED)
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
 
   user    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   pointAssignments CaptainPointAssignment[]
 
   @@index([districtId])
   @@index([availabilityStatus])
+  @@index([aadhaarVerificationStatus])
+  @@index([licenseVerificationStatus])
+  @@index([onboardingStatus])
 }
 
 model CaptainPointAssignment {
@@ -859,21 +886,87 @@ model Testimonial {
 }
 
 model Blog {
-  id          String   @id @default(uuid())
-  title       String
-  slug        String   @unique
-  excerpt     String?
-  content     String
-  coverImage  String?
-  author      String?
-  isPublished Boolean  @default(false)
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  excerpt         String?
+  content         String
+  coverImage      String?
+  author          String?
+  isPublished     Boolean  @default(false)
+  publishedAt     DateTime?
+  // SEO fields
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  ogImage         String?
+  canonicalUrl    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categories      BlogCategoryOnBlog[]
+  tags            BlogTagOnBlog[]
 
   @@index([slug])
   @@index([isPublished])
   @@index([publishedAt])
+}
+
+model BlogCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  blogs       BlogCategoryOnBlog[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model BlogTag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  blogs       BlogTagOnBlog[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model BlogCategoryOnBlog {
+  id         String @id @default(uuid())
+  blogId     String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  blog       Blog         @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  category   BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, categoryId])
+  @@index([blogId])
+  @@index([categoryId])
+}
+
+model BlogTagOnBlog {
+  id     String @id @default(uuid())
+  blogId String
+  tagId  String
+  createdAt DateTime @default(now())
+
+  blog   Blog    @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  tag    BlogTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, tagId])
+  @@index([blogId])
+  @@index([tagId])
 }
 
 model VehicleConfiguration {
@@ -927,6 +1020,21 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+  @@index([createdAt])
+}
+
+model ContactSubmission {
+  id        String                  @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    ContactSubmissionStatus @default(PENDING)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@index([status])
   @@index([createdAt])
 }
 

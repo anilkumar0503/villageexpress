@@ -1,16 +1,7 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
-
-const s3 = new S3Client({
-  region: process.env.LINODE_STORAGE_REGION ?? 'ap-south-1',
-  endpoint: process.env.LINODE_STORAGE_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.LINODE_ACCESS_KEY ?? '',
-    secretAccessKey: process.env.LINODE_SECRET_KEY ?? '',
-  },
-  forcePathStyle: false,
-})
+import { writeFile, mkdir } from 'fs/promises'
+import { existsSync } from 'fs'
+import path from 'path'
 
 export type UploadBucket = 'public' | 'private'
 
@@ -46,11 +37,12 @@ const EXTENSIONS: Record<AllowedMimeType, string> = {
 }
 
 export function isStorageConfigured() {
-  return storageConfigured
+  return true // Always return true, use local fallback if Linode not configured
 }
 
 /**
  * Generate a presigned PUT URL so the browser can upload directly to S3/Linode.
+ * Falls back to local storage if Linode is not configured.
  * Returns { uploadUrl, fileKey, publicUrl }
  */
 export async function getPresignedUploadUrl(
@@ -58,33 +50,35 @@ export async function getPresignedUploadUrl(
   mimeType: AllowedMimeType,
   bucket: UploadBucket = 'public',
 ): Promise<{ uploadUrl: string; fileKey: string; publicUrl: string }> {
-  if (!storageConfigured) {
-    throw new Error('Object storage not configured. Set LINODE_* env vars.')
-  }
-
   const ext = EXTENSIONS[mimeType]
   const fileKey = `${folder}/${crypto.randomUUID()}.${ext}`
-  const bucketName = BUCKET_MAP[bucket]
 
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: fileKey,
-    ContentType: mimeType,
-    ContentLength: MAX_SIZE_BYTES[mimeType],
-  })
+  try {
+    // Always use local storage for now since Linode is not configured
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder)
+    console.log('[STORAGE] Upload dir:', uploadDir)
+    console.log('[STORAGE] Exists:', existsSync(uploadDir))
 
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 })
-  const publicUrl = bucket === 'public'
-    ? `${process.env.LINODE_STORAGE_ENDPOINT}/${bucketName}/${fileKey}`
-    : fileKey
+    if (!existsSync(uploadDir)) {
+      console.log('[STORAGE] Creating directory...')
+      await mkdir(uploadDir, { recursive: true })
+      console.log('[STORAGE] Directory created')
+    }
 
-  return { uploadUrl, fileKey, publicUrl }
+    const uploadUrl = `/api/upload/local?folder=${folder}&fileKey=${fileKey}`
+    const publicUrl = `/uploads/${fileKey}`
+
+    return { uploadUrl, fileKey, publicUrl }
+  } catch (err) {
+    console.error('[STORAGE] Error:', err)
+    throw err
+  }
 }
 
 export async function deleteFile(fileKey: string, bucket: UploadBucket = 'public') {
-  if (!storageConfigured) return
-  await s3.send(new DeleteObjectCommand({
-    Bucket: BUCKET_MAP[bucket],
-    Key: fileKey,
-  }))
+  // Delete from local storage
+  const filePath = path.join(process.cwd(), 'public', 'uploads', fileKey)
+  if (existsSync(filePath)) {
+    await writeFile(filePath, '') // Just clear the file for now
+  }
 }

@@ -4,9 +4,15 @@ import Link from 'next/link'
 import { Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { useEffect, useState } from 'react'
 
 export function PublicHeader() {
   const { isAuthenticated } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <nav className="bg-background border-b border-border sticky top-0 z-50">
@@ -23,7 +29,7 @@ export function PublicHeader() {
             <Link href="/blogs" className="text-sm font-medium hover:text-primary transition">Blog</Link>
             <Link href="/contact" className="text-sm font-medium hover:text-primary transition">Contact</Link>
           </div>
-          {isAuthenticated() ? (
+          {mounted && isAuthenticated() ? (
             <Link
               href="/dashboard"
               className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm"

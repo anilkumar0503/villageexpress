@@ -44,3 +44,14 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
   const { payload } = await jwtVerify(token, refreshSecret())
   return payload as RefreshTokenPayload
 }
+
+export function decodeAccessToken(token: string): AccessTokenPayload | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
+    return payload as AccessTokenPayload
+  } catch {
+    return null
+  }
+}

@@ -28,21 +28,43 @@ export function FileUpload({ folder, accept = 'image/jpeg,image/png,image/webp',
     setUploading(true)
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
       const presignRes = await fetch('/api/upload/presign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        headers,
         body: JSON.stringify({ folder, mimeType: file.type }),
       })
       const presignData = await presignRes.json()
       if (!presignData.success) throw new Error(presignData.error)
 
-      const { uploadUrl, publicUrl } = presignData.data
+      const { uploadUrl, publicUrl, fileKey } = presignData.data
 
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      })
+      // Check if using local storage or S3 presigned URL
+      if (uploadUrl.startsWith('/api/upload/local')) {
+        // Use local storage
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folder', folder)
+        formData.append('fileKey', fileKey)
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
+        })
+        const uploadData = await uploadRes.json()
+        if (!uploadData.success) throw new Error(uploadData.error)
+      } else {
+        // Use S3 presigned URL
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
+      }
 
       if (file.type.startsWith('image/')) {
         setPreview(URL.createObjectURL(file))

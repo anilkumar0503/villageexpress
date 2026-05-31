@@ -11,6 +11,15 @@ const createSchema = z.object({
   coverImage: z.string().optional(),
   author: z.string().optional(),
   isPublished: z.boolean().default(false),
+  // SEO fields
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  metaKeywords: z.string().optional(),
+  ogImage: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  // Categories and tags
+  categoryIds: z.array(z.string().uuid()).optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
 })
 
 const updateSchema = z.object({
@@ -21,6 +30,15 @@ const updateSchema = z.object({
   coverImage: z.string().optional(),
   author: z.string().optional(),
   isPublished: z.boolean().optional(),
+  // SEO fields
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  metaKeywords: z.string().optional(),
+  ogImage: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  // Categories and tags
+  categoryIds: z.array(z.string().uuid()).optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
 })
 
 // Public GET - only published blogs
@@ -30,6 +48,8 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, Number(searchParams.get('page') ?? 1))
   const pageSize = Math.min(100, Number(searchParams.get('pageSize') ?? 20))
   const slug = searchParams.get('slug')
+  const categoryId = searchParams.get('categoryId')
+  const tagId = searchParams.get('tagId')
 
   // If admin, require auth and show all blogs
   if (isAdmin) {
@@ -37,11 +57,23 @@ export async function GET(req: NextRequest) {
     if (error) return error
   }
 
-  // If slug is provided, return single blog
+  // If slug is provided, return single blog with relations
   if (slug) {
     const where = isAdmin ? { slug } : { slug, isPublished: true }
     const blog = await prisma.blog.findUnique({
       where,
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
     })
 
     if (!blog) {
@@ -51,7 +83,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: blog })
   }
 
-  const where = isAdmin ? {} : { isPublished: true }
+  const where: any = isAdmin ? {} : { isPublished: true }
+
+  // Filter by category
+  if (categoryId) {
+    where.categories = {
+      some: {
+        categoryId,
+      },
+    }
+  }
+
+  // Filter by tag
+  if (tagId) {
+    where.tags = {
+      some: {
+        tagId,
+      },
+    }
+  }
 
   const [items, total] = await Promise.all([
     prisma.blog.findMany({
@@ -59,6 +109,18 @@ export async function GET(req: NextRequest) {
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { publishedAt: 'desc' },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
     }),
     prisma.blog.count({ where }),
   ])
@@ -90,10 +152,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Slug already exists' }, { status: 400 })
     }
 
-    const blog = await prisma.blog.create({
-      data: {
-        ...parsed.data,
-        publishedAt: parsed.data.isPublished ? new Date() : null,
+    const { categoryIds, tagIds, ...blogData } = parsed.data
+
+    const blog = await prisma.$transaction(async (tx) => {
+      const newBlog = await tx.blog.create({
+        data: {
+          ...blogData,
+          publishedAt: parsed.data.isPublished ? new Date() : null,
+        },
+      })
+
+      // Create category relationships
+      if (categoryIds && categoryIds.length > 0) {
+        await tx.blogCategoryOnBlog.createMany({
+          data: categoryIds.map((categoryId) => ({
+            blogId: newBlog.id,
+            categoryId,
+          })),
+        })
+      }
+
+      // Create tag relationships
+      if (tagIds && tagIds.length > 0) {
+        await tx.blogTagOnBlog.createMany({
+          data: tagIds.map((tagId) => ({
+            blogId: newBlog.id,
+            tagId,
+          })),
+        })
+      }
+
+      return newBlog
+    })
+
+    // Fetch blog with relations
+    const blogWithRelations = await prisma.blog.findUnique({
+      where: { id: blog.id },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     })
 

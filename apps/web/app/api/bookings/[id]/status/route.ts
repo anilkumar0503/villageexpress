@@ -4,7 +4,7 @@ import { prisma, type BookingStatus } from '@ve/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { canTransition } from '@/lib/booking/state-machine'
 import { sendNotificationToUser } from '@/lib/firebase-admin'
-import { sendBookingPickedUpEmail, sendBookingDeliveredEmail, sendBookingCancelledEmail } from '@/lib/email'
+import { sendBookingPickedUpEmail, sendBookingDeliveredEmail, sendBookingCancelledEmail, sendFailedDeliveryEmail } from '@/lib/email'
 
 const STATUS_MESSAGES: Partial<Record<string, string>> = {
   CONFIRMED: 'Your booking has been confirmed!',
@@ -120,6 +120,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     }
     if (newStatus === 'CANCELLED' && bookingWithEmails?.customer.email) {
       sendBookingCancelledEmail(bookingWithEmails.customer.email, bookingWithEmails.customer.name, updated.bookingNumber, updated.paymentStatus === 'REFUNDED').catch(() => {})
+    }
+    if (newStatus === 'RETURN_INITIATED' && bookingWithEmails?.customer.email) {
+      sendFailedDeliveryEmail(bookingWithEmails.customer.email, bookingWithEmails.customer.name, updated.bookingNumber, parsed.data.note || 'Delivery attempt failed - returning to sender').catch(() => {})
     }
 
     return NextResponse.json({ success: true, data: updated })

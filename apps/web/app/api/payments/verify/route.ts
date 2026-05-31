@@ -3,6 +3,7 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
+import { sendPaymentConfirmationEmail } from '@/lib/email'
 
 const schema = z.object({
   bookingId: z.string().uuid(),
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { id: true, customerId: true, paymentStatus: true, paymentMethod: true, calculatedPrice: true },
+    select: { id: true, customerId: true, paymentStatus: true, paymentMethod: true, calculatedPrice: true, bookingNumber: true },
   })
 
   if (!booking) {
@@ -65,6 +66,21 @@ export async function POST(req: NextRequest) {
       result: 'GRANTED',
     },
   })
+
+  // Send payment confirmation email
+  const customer = await prisma.user.findUnique({
+    where: { id: booking.customerId },
+    select: { name: true, email: true },
+  })
+  if (customer?.email) {
+    await sendPaymentConfirmationEmail(
+      customer.email,
+      customer.name,
+      booking.bookingNumber,
+      Number(booking.calculatedPrice),
+      booking.paymentMethod || 'ONLINE',
+    )
+  }
 
   return NextResponse.json({ success: true, message: 'Payment verified and booking confirmed' })
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
 import { z } from 'zod'
+import { sendCodRemittanceEmail } from '@/lib/email'
 
 const codRemittanceSchema = z.object({
   collectionId: z.string().uuid(),
@@ -134,6 +135,21 @@ export async function POST(req: NextRequest) {
         where: { id: data.collectionId },
         data: { status: 'PARTIALLY_REMITTED' },
       })
+    }
+
+    // Send email notification
+    const user = await prisma.user.findUnique({
+      where: { id: session!.userId },
+      select: { name: true, email: true },
+    })
+    if (user?.email) {
+      await sendCodRemittanceEmail(
+        user.email,
+        user.name,
+        remittance.id,
+        Number(remittance.amount),
+        remittance.remittanceDate.toISOString().split('T')[0],
+      )
     }
 
     return NextResponse.json({ success: true, data: remittance })

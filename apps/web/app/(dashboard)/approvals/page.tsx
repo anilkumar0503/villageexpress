@@ -13,10 +13,23 @@ type PendingUser = {
   name: string
   email: string
   phone: string
+  approvalStatus: string
+  isActive: boolean
   createdAt: string
   userRoles: { role: { name: string }; isPrimary: boolean }[]
   pointManagerProfile: { shopName: string; shopPhoto: string | null } | null
-  captainProfile: { vehicleType: string; vehicleNumber: string; aadhaarNumber: string; aadhaarPhoto: string | null; licensePhoto: string | null } | null
+  captainProfile: {
+    id: string
+    vehicleType: string
+    vehicleNumber: string
+    aadhaarNumber: string
+    aadhaarPhoto: string | null
+    licensePhoto: string | null
+    aadhaarVerificationStatus: string
+    licenseVerificationStatus: string
+    aadhaarRejectionReason: string | null
+    licenseRejectionReason: string | null
+  } | null
 }
 
 export default function ApprovalsPage() {
@@ -24,10 +37,11 @@ export default function ApprovalsPage() {
   const [users, setUsers] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING')
 
-  async function fetchPending() {
+  async function fetchUsers(status: 'PENDING' | 'APPROVED' | 'REJECTED') {
     setLoading(true)
-    const res = await fetch('/api/users?approvalStatus=PENDING&pageSize=50', {
+    const res = await fetch(`/api/users?approvalStatus=${status}&pageSize=50`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     const data = await res.json()
@@ -35,7 +49,7 @@ export default function ApprovalsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchPending() }, [])
+  useEffect(() => { fetchUsers(filter) }, [filter])
 
   async function handleAction(userId: string, action: 'APPROVE' | 'REJECT') {
     setActionLoading(userId + action)
@@ -45,7 +59,18 @@ export default function ApprovalsPage() {
       body: JSON.stringify({ action }),
     })
     setActionLoading(null)
-    fetchPending()
+    fetchUsers(filter)
+  }
+
+  async function handleKycVerification(captainId: string, documentType: 'AADHAAR' | 'LICENSE', status: 'VERIFIED' | 'REJECTED', rejectionReason?: string) {
+    setActionLoading(captainId + documentType + status)
+    await fetch(`/api/captains/${captainId}/kyc`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ documentType, status, rejectionReason }),
+    })
+    setActionLoading(null)
+    fetchUsers(filter)
   }
 
   if (loading) {
@@ -59,18 +84,45 @@ export default function ApprovalsPage() {
   return (
     <div className="space-y-6" data-testid="approvals-page">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">Pending Approvals</h1>
+        <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">User Approvals</h1>
         <p className="text-sm text-muted-foreground mt-1" data-testid="pending-count">
-          {users.length} registration{users.length !== 1 ? 's' : ''} awaiting review
+          {users.length} registration{users.length !== 1 ? 's' : ''} {filter.toLowerCase()}
         </p>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2">
+        <Button
+          variant={filter === 'PENDING' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('PENDING')}
+        >
+          Pending
+        </Button>
+        <Button
+          variant={filter === 'APPROVED' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('APPROVED')}
+        >
+          Approved
+        </Button>
+        <Button
+          variant={filter === 'REJECTED' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('REJECTED')}
+        >
+          Rejected
+        </Button>
       </div>
 
       {users.length === 0 ? (
         <Card data-testid="empty-state">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <CheckCircle2 className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="font-medium">All caught up!</p>
-            <p className="text-sm text-muted-foreground">No pending registrations.</p>
+            <p className="font-medium">No {filter.toLowerCase()} registrations</p>
+            <p className="text-sm text-muted-foreground">
+              {filter === 'PENDING' ? 'All registrations have been reviewed.' : ''}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -93,9 +145,17 @@ export default function ApprovalsPage() {
                         <p className="text-xs text-muted-foreground">{user.displayId} &middot; {user.email} &middot; {user.phone}</p>
                       </div>
                     </div>
-                    <Badge variant={isPM ? 'default' : 'secondary'}>
-                      {isPM ? 'Point Manager' : isCaptain ? 'Captain' : role}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={isPM ? 'default' : 'secondary'}>
+                        {isPM ? 'Point Manager' : isCaptain ? 'Captain' : role}
+                      </Badge>
+                      <Badge variant={
+                        user.approvalStatus === 'APPROVED' ? 'default' :
+                        user.approvalStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                      }>
+                        {user.approvalStatus}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -126,19 +186,101 @@ export default function ApprovalsPage() {
 
                   {isCaptain && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Documents</p>
-                      <div className="flex flex-wrap gap-3">
-                        {user.captainProfile?.aadhaarPhoto && (
-                          <a href={user.captainProfile.aadhaarPhoto} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                            <FileText className="h-4 w-4" />
-                            Aadhaar Photo
-                          </a>
+                      <p className="text-xs font-medium text-muted-foreground">KYC Documents</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Aadhaar</span>
+                            <Badge variant={
+                              user.captainProfile?.aadhaarVerificationStatus === 'VERIFIED' ? 'default' :
+                              user.captainProfile?.aadhaarVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                            }>
+                              {user.captainProfile?.aadhaarVerificationStatus || 'PENDING'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {user.captainProfile?.aadhaarPhoto && (
+                              <a href={user.captainProfile.aadhaarPhoto} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                                View
+                              </a>
+                            )}
+                            {user.captainProfile?.aadhaarVerificationStatus !== 'VERIFIED' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  disabled={!!actionLoading}
+                                  onClick={() => handleKycVerification(user.captainProfile!.id, 'AADHAAR', 'VERIFIED')}
+                                >
+                                  Verify
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs text-destructive"
+                                  disabled={!!actionLoading}
+                                  onClick={() => {
+                                    const reason = prompt('Rejection reason:')
+                                    if (reason) handleKycVerification(user.captainProfile!.id, 'AADHAAR', 'REJECTED', reason)
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {user.captainProfile?.aadhaarRejectionReason && (
+                          <p className="text-xs text-destructive ml-6">{user.captainProfile.aadhaarRejectionReason}</p>
                         )}
-                        {user.captainProfile?.licensePhoto && (
-                          <a href={user.captainProfile.licensePhoto} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                            <FileText className="h-4 w-4" />
-                            License Photo
-                          </a>
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">License</span>
+                            <Badge variant={
+                              user.captainProfile?.licenseVerificationStatus === 'VERIFIED' ? 'default' :
+                              user.captainProfile?.licenseVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                            }>
+                              {user.captainProfile?.licenseVerificationStatus || 'PENDING'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {user.captainProfile?.licensePhoto && (
+                              <a href={user.captainProfile.licensePhoto} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                                View
+                              </a>
+                            )}
+                            {user.captainProfile?.licenseVerificationStatus !== 'VERIFIED' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  disabled={!!actionLoading}
+                                  onClick={() => handleKycVerification(user.captainProfile!.id, 'LICENSE', 'VERIFIED')}
+                                >
+                                  Verify
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs text-destructive"
+                                  disabled={!!actionLoading}
+                                  onClick={() => {
+                                    const reason = prompt('Rejection reason:')
+                                    if (reason) handleKycVerification(user.captainProfile!.id, 'LICENSE', 'REJECTED', reason)
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {user.captainProfile?.licenseRejectionReason && (
+                          <p className="text-xs text-destructive ml-6">{user.captainProfile.licenseRejectionReason}</p>
                         )}
                       </div>
                     </div>
@@ -148,31 +290,33 @@ export default function ApprovalsPage() {
                     Registered: {new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
 
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      disabled={!!actionLoading}
-                      onClick={() => handleAction(user.id, 'APPROVE')}
-                    >
-                      {actionLoading === user.id + 'APPROVE'
-                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                        : <CheckCircle2 className="h-3 w-3" />}
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-destructive hover:text-destructive"
-                      disabled={!!actionLoading}
-                      onClick={() => handleAction(user.id, 'REJECT')}
-                    >
-                      {actionLoading === user.id + 'REJECT'
-                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                        : <XCircle className="h-3 w-3" />}
-                      Reject
-                    </Button>
-                  </div>
+                  {filter === 'PENDING' && (
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={!!actionLoading}
+                        onClick={() => handleAction(user.id, 'APPROVE')}
+                      >
+                        {actionLoading === user.id + 'APPROVE'
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <CheckCircle2 className="h-3 w-3" />}
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                        disabled={!!actionLoading}
+                        onClick={() => handleAction(user.id, 'REJECT')}
+                      >
+                        {actionLoading === user.id + 'REJECT'
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <XCircle className="h-3 w-3" />}
+                        Reject
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )

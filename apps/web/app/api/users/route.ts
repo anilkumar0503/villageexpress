@@ -57,8 +57,20 @@ export async function GET(req: NextRequest) {
         },
         captainProfile: {
           select: {
+            id: true,
             vehicleType: true,
             vehicleNumber: true,
+            aadhaarNumber: true,
+            aadhaarPhoto: true,
+            licensePhoto: true,
+            // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
+            aadhaarVerificationStatus: true,
+            // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
+            licenseVerificationStatus: true,
+            // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
+            aadhaarRejectionReason: true,
+            // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
+            licenseRejectionReason: true,
             districtId: true,
             pointAssignments: {
               where: { isActive: true },

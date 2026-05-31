@@ -62,6 +62,9 @@ export default function LoginPage() {
       if (!data.success) return setError(data.error)
       setAuth({ ...data.data.user, roles: ['CUSTOMER'] }, data.data.accessToken)
       
+      // Wait for state to persist before redirecting
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       // Check for stored locations from landing page
       const pickupLocationId = sessionStorage.getItem('pickupLocationId')
       const dropLocationId = sessionStorage.getItem('dropLocationId')
@@ -94,6 +97,9 @@ export default function LoginPage() {
       const data = await res.json()
       if (!data.success) return setError(data.error)
       setAuth(data.data.user, data.data.accessToken)
+      
+      // Wait for state to persist before redirecting
+      await new Promise(resolve => setTimeout(resolve, 100))
       
       // Check for stored locations from landing page
       const pickupLocationId = sessionStorage.getItem('pickupLocationId')

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@ve/db'
 import bcrypt from 'bcryptjs'
+import { sendPasswordChangedEmail } from '@/lib/email'
 
 const schema = z.object({
   token: z.string(),
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest) {
       where: { id: reset.id },
       data: { used: true },
     })
+
+    // Send password changed email
+    if (reset.user.email) {
+      await sendPasswordChangedEmail(reset.user.email, reset.user.name)
+    }
 
     return NextResponse.json({
       success: true,

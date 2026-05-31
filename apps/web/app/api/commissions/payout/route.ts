@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requireAuth, requirePermission } from '@/lib/auth/permissions'
+import { sendCommissionPayoutEmail } from '@/lib/email'
 
 // POST /api/commissions/payout - Process approved commissions as payouts
 export async function POST(req: NextRequest) {
@@ -82,6 +83,23 @@ export async function POST(req: NextRequest) {
 
     return processed
   })
+
+  // Send email notifications for each payout
+  for (const commission of results) {
+    const user = await prisma.user.findUnique({
+      where: { id: commission.userId },
+      select: { name: true, email: true },
+    })
+    if (user?.email) {
+      await sendCommissionPayoutEmail(
+        user.email,
+        user.name,
+        commission.id,
+        Number(commission.amount),
+        commission.paidAt ? commission.paidAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      )
+    }
+  }
 
   return NextResponse.json({ success: true, data: results })
 }

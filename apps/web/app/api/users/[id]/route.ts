@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@ve/db'
 import { requirePermission } from '@/lib/auth/permissions'
+import { sendAccountSuspendedEmail } from '@/lib/email'
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -78,6 +79,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       data: userData,
       select: { id: true, displayId: true, name: true, email: true, phone: true, isActive: true },
     })
+
+    // Send suspension email if account is being deactivated
+    if (userData.isActive === false && user.email) {
+      await sendAccountSuspendedEmail(user.email, user.name, 'Account deactivated by admin')
+    }
 
     // Update captain profile if captain-specific fields are provided
     if (vehicleType || vehicleNumber || districtIds || selectedPoints) {

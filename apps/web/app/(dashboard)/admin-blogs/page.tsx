@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, FileText, CheckCircle2, XCircle, Eye, Edit, Trash2, Plus, Calendar, User } from 'lucide-react'
+import { Loader2, FileText, CheckCircle2, XCircle, Eye, Edit, Trash2, Plus, Calendar, User, Image as ImageIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
+import { RichTextEditor } from '@/components/rich-text-editor'
+import { BlogImageLibrary } from '@/components/blog-image-library'
 
 type Blog = {
   id: string
@@ -24,6 +26,27 @@ type Blog = {
   isPublished: boolean
   publishedAt: string | null
   createdAt: string
+  // SEO fields
+  metaTitle: string | null
+  metaDescription: string | null
+  metaKeywords: string | null
+  ogImage: string | null
+  canonicalUrl: string | null
+  // Relations
+  categories: { id: string; category: { id: string; name: string; slug: string } }[]
+  tags: { id: string; tag: { id: string; name: string; slug: string } }[]
+}
+
+type Category = {
+  id: string
+  name: string
+  slug: string
+}
+
+type Tag = {
+  id: string
+  name: string
+  slug: string
 }
 
 export default function BlogsPage() {
@@ -37,6 +60,8 @@ export default function BlogsPage() {
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null)
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -45,9 +70,20 @@ export default function BlogsPage() {
     coverImage: '',
     author: '',
     isPublished: false,
+    // SEO fields
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: '',
+    ogImage: '',
+    canonicalUrl: '',
+    // Categories and tags
+    categoryIds: [] as string[],
+    tagIds: [] as string[],
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [imageLibraryOpen, setImageLibraryOpen] = useState(false)
+  const [imageLibraryMode, setImageLibraryMode] = useState<'insert' | 'cover'>('insert')
 
   useEffect(() => {
     setLoading(true)
@@ -65,6 +101,21 @@ export default function BlogsPage() {
       .finally(() => setLoading(false))
   }, [statusFilter, page, accessToken])
 
+  useEffect(() => {
+    // Fetch categories and tags
+    Promise.all([
+      fetch('/api/blog-categories?admin=true', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then(r => r.json()),
+      fetch('/api/blog-tags?admin=true', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then(r => r.json()),
+    ]).then(([catsData, tagsData]) => {
+      if (catsData.success) setCategories(catsData.data)
+      if (tagsData.success) setTags(tagsData.data)
+    })
+  }, [accessToken])
+
   function openCreateDialog() {
     setIsCreating(true)
     setFormData({
@@ -75,6 +126,13 @@ export default function BlogsPage() {
       coverImage: '',
       author: '',
       isPublished: false,
+      metaTitle: '',
+      metaDescription: '',
+      metaKeywords: '',
+      ogImage: '',
+      canonicalUrl: '',
+      categoryIds: [],
+      tagIds: [],
     })
   }
 
@@ -88,6 +146,13 @@ export default function BlogsPage() {
       coverImage: blog.coverImage || '',
       author: blog.author || '',
       isPublished: blog.isPublished,
+      metaTitle: blog.metaTitle || '',
+      metaDescription: blog.metaDescription || '',
+      metaKeywords: blog.metaKeywords || '',
+      ogImage: blog.ogImage || '',
+      canonicalUrl: blog.canonicalUrl || '',
+      categoryIds: blog.categories.map(c => c.category.id),
+      tagIds: blog.tags.map(t => t.tag.id),
     })
   }
 
@@ -143,7 +208,7 @@ export default function BlogsPage() {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       const data = await res.json()
-      
+
       if (data.success) {
         toast.success('Blog deleted successfully')
         setSelectedBlog(null)
@@ -165,6 +230,21 @@ export default function BlogsPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  function handleInsertImage(url: string) {
+    // Insert image into rich text editor at cursor position
+    setFormData({ ...formData, content: formData.content + `<img src="${url}" alt="" />` })
+    setImageLibraryOpen(false)
+  }
+
+  function handleSelectImage(url: string) {
+    if (imageLibraryMode === 'cover') {
+      setFormData({ ...formData, coverImage: url })
+    } else {
+      setFormData({ ...formData, content: formData.content + `<img src="${url}" alt="" />` })
+    }
+    setImageLibraryOpen(false)
   }
 
   return (
@@ -409,25 +489,156 @@ export default function BlogsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="coverImage">Cover Image URL</Label>
-              <Input
-                id="coverImage"
-                value={formData.coverImage}
-                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
+              <Label htmlFor="coverImage">Cover Image</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="coverImage"
+                  value={formData.coverImage}
+                  onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setImageLibraryMode('cover'); setImageLibraryOpen(true) }}
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Library
+                </Button>
+              </div>
+              {formData.coverImage && (
+                <div className="mt-2">
+                  <img src={formData.coverImage} alt="Cover preview" className="h-32 w-auto rounded border" />
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="content">Content *</Label>
-              <textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                rows={10}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="HTML content supported"
+              <div className="flex gap-2 mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setImageLibraryMode('insert'); setImageLibraryOpen(true) }}
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Insert Image
+                </Button>
+              </div>
+              <RichTextEditor
+                content={formData.content}
+                onChange={(content) => setFormData({ ...formData, content })}
+                onInsertImage={() => { setImageLibraryMode('insert'); setImageLibraryOpen(true) }}
               />
             </div>
+            
+            {/* SEO Section */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3">SEO Settings</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="metaTitle">Meta Title</Label>
+                  <Input
+                    id="metaTitle"
+                    value={formData.metaTitle}
+                    onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                    placeholder="SEO title (optional, defaults to blog title)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="metaDescription">Meta Description</Label>
+                  <textarea
+                    id="metaDescription"
+                    value={formData.metaDescription}
+                    onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="SEO description for search engines"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="metaKeywords">Meta Keywords</Label>
+                  <Input
+                    id="metaKeywords"
+                    value={formData.metaKeywords}
+                    onChange={(e) => setFormData({ ...formData, metaKeywords: e.target.value })}
+                    placeholder="Comma-separated keywords"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ogImage">OG Image URL</Label>
+                  <Input
+                    id="ogImage"
+                    value={formData.ogImage}
+                    onChange={(e) => setFormData({ ...formData, ogImage: e.target.value })}
+                    placeholder="https://example.com/og-image.jpg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="canonicalUrl">Canonical URL</Label>
+                  <Input
+                    id="canonicalUrl"
+                    value={formData.canonicalUrl}
+                    onChange={(e) => setFormData({ ...formData, canonicalUrl: e.target.value })}
+                    placeholder="https://example.com/blog/post"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Categories and Tags */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3">Categories & Tags</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="categories">Categories</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {categories.map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.categoryIds.includes(cat.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, categoryIds: [...formData.categoryIds, cat.id] })
+                            } else {
+                              setFormData({ ...formData, categoryIds: formData.categoryIds.filter(id => id !== cat.id) })
+                            }
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm">{cat.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {categories.length === 0 && <p className="text-sm text-muted-foreground">No categories available. Create some first.</p>}
+                </div>
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {tags.map((tag) => (
+                      <label key={tag.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.tagIds.includes(tag.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, tagIds: [...formData.tagIds, tag.id] })
+                            } else {
+                              setFormData({ ...formData, tagIds: formData.tagIds.filter(id => id !== tag.id) })
+                            }
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm">{tag.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {tags.length === 0 && <p className="text-sm text-muted-foreground">No tags available. Create some first.</p>}
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -450,6 +661,14 @@ export default function BlogsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Library Dialog */}
+      <BlogImageLibrary
+        open={imageLibraryOpen}
+        onOpenChange={setImageLibraryOpen}
+        onSelectImage={handleSelectImage}
+        mode={imageLibraryMode}
+      />
     </div>
   )
 }

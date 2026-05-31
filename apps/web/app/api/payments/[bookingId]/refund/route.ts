@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requirePermission } from '@/lib/auth/permissions'
+import { sendRefundProcessedEmail } from '@/lib/email'
 
 type RouteContext = { params: Promise<{ bookingId: string }> }
 
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { id: true, paymentStatus: true, paymentGatewayRef: true, calculatedPrice: true },
+    select: { id: true, paymentStatus: true, paymentGatewayRef: true, calculatedPrice: true, bookingNumber: true, customerId: true },
   })
 
   if (!booking) {
@@ -49,6 +50,21 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         result: 'GRANTED',
       },
     })
+
+    // Send email notification to customer
+    const customer = await prisma.user.findUnique({
+      where: { id: booking.customerId },
+      select: { name: true, email: true },
+    })
+    if (customer?.email) {
+      await sendRefundProcessedEmail(
+        customer.email,
+        customer.name,
+        booking.bookingNumber,
+        Number(booking.calculatedPrice),
+        refund.id,
+      )
+    }
 
     return NextResponse.json({ success: true, data: refund })
   } catch (err) {
