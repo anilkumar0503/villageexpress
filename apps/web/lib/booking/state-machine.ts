@@ -1,4 +1,4 @@
-import type { BookingStatus } from '@ve/db'
+type BookingStatus = 'PENDING' | 'PAYMENT_FAILED' | 'CONFIRMED' | 'RECEIVED_AT_POINT' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURN_INITIATED' | 'RETURNED'
 
 type Transition = {
   from: BookingStatus[]

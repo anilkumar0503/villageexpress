@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
-import { BookingStatus } from '@ve/db'
+
+type BookingStatus = 'PENDING' | 'PAYMENT_FAILED' | 'CONFIRMED' | 'RECEIVED_AT_POINT' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURN_INITIATED' | 'RETURNED'
 
 export async function GET(req: NextRequest) {
   const { error, session } = await requireAuth(req)
