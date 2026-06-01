@@ -125,7 +125,7 @@ export default function CommissionsPage() {
     if (selectedIds.length === commissions.length) {
       setSelectedIds([])
     } else {
-      setSelectedIds(commissions.map((c) => c.id))
+      setSelectedIds(commissions.map((c: any) => c.id))
     }
   }
 

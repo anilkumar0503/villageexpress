@@ -525,7 +525,7 @@ export default function PMQueuePage() {
     : allSegments.filter((s) => s.status === statusFilter && (!searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase())))
 
   const counts = Object.fromEntries(
-    Object.keys(STATUS_META).map((k) => [k, allSegmentsForMetrics.filter((s) => s.status === k).length])
+    Object.keys(STATUS_META).map((k: string) => [k, allSegmentsForMetrics.filter((s: any) => s.status === k).length])
   )
   const actionNeeded = (counts['PENDING'] ?? 0) + (counts['RECEIVED_AT_POINT'] ?? 0)
   counts['NEEDS_ACTION'] = actionNeeded
@@ -570,7 +570,7 @@ export default function PMQueuePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-48 overflow-y-auto">
-              {allSegmentsForMetrics.slice(0, 5).map((s) => (
+              {allSegmentsForMetrics.slice(0, 5).map((s: any) => (
                 <div key={s.id} className="flex items-center gap-3 text-sm">
                   <div className={`h-2 w-2 rounded-full ${
                     s.status === 'DELIVERED' ? 'bg-green-500' :
@@ -644,7 +644,7 @@ export default function PMQueuePage() {
         </Card>
       ) : (
         <div className="space-y-3" data-testid="segments-list">
-          {segments.map((s) => {
+          {segments.map((s: any) => {
             const displayStatus = s.booking.status === 'CANCELLED' ? 'CANCELLED' : s.status
             const meta = STATUS_META[displayStatus]
             const needsReceipt = s.status === 'PENDING' && s.booking.status !== 'CANCELLED'
@@ -828,7 +828,7 @@ export default function PMQueuePage() {
                                   {captains.length === 0 && (
                                     <div className="px-3 py-2 text-xs text-muted-foreground">No captains available</div>
                                   )}
-                                  {captains.map((c) => (
+                                  {captains.map((c: any) => (
                                     <SelectItem key={c.id} value={c.id}>
                                       <div className="flex flex-col">
                                         <span>{c.name}</span>

@@ -175,7 +175,7 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-bold tracking-tight">{profile.name}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-sm text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">{profile.displayId}</span>
-            {roles.map((r) => (
+            {roles.map((r: string) => (
               <Badge key={r} variant="default" className="text-xs font-medium">
                 {r.replace(/_/g, ' ')}
               </Badge>
@@ -335,14 +335,14 @@ export default function ProfilePage() {
                     <Label htmlFor="state">State</Label>
                     <Select onValueChange={loadDistricts}>
                       <SelectTrigger id="state"><SelectValue placeholder="Select state" /></SelectTrigger>
-                      <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                      <SelectContent>{states.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district">District</Label>
                     <Select disabled={!selectedState} value={selectedDistrict} onValueChange={loadPoints}>
                       <SelectTrigger id="district"><SelectValue placeholder="Select district" /></SelectTrigger>
-                      <SelectContent>{districts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                      <SelectContent>{districts.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>

@@ -162,13 +162,13 @@ export default function RoutesPage() {
           destinationLocationId: destLocationId,
           estimatedDays: Number(estimatedDays),
           isActive: true,
-          segments: segments.map((s) => ({
+          segments: segments.map((s: any) => ({
             fromLocationId: s.fromLocationId,
             toLocationId: s.toLocationId,
             distanceKm: Number(s.distanceKm),
             estimatedHours: Number(s.estimatedHours),
           })),
-          pricingRules: pricingRules.map((r) => ({
+          pricingRules: pricingRules.map((r: any) => ({
             basePrice: Number(r.basePrice),
             pricePerKm: Number(r.pricePerKm),
             weightSurcharge: Number(r.weightSurcharge),
@@ -218,7 +218,7 @@ export default function RoutesPage() {
       const body: Record<string, unknown> = {
         name: editName.trim(),
         estimatedDays: Number(editDays),
-        segments: editSegments.map((s) => ({
+        segments: editSegments.map((s: any) => ({
           fromLocationId: s.fromLocationId,
           toLocationId: s.toLocationId,
           distanceKm: Number(s.distanceKm),

@@ -518,7 +518,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3].map((i: number) => (
               <div key={i} className="bg-card p-8 rounded-xl border border-border hover:shadow-lg transition">
                 <div className="flex items-center gap-1 mb-4">
                   {[...Array(5)].map((_, j) => (

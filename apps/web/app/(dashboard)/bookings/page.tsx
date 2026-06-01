@@ -157,7 +157,7 @@ export default function AllBookingsPage() {
           <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            {Object.keys(STATUS_COLORS).map((s) => (
+            {Object.keys(STATUS_COLORS).map((s: string) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
           </SelectContent>
@@ -206,7 +206,7 @@ export default function AllBookingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.map((b) => (
+              {bookings.map((b: any) => (
                 <TableRow key={b.id}>
                   <TableCell>
                     <Link href={`/bookings/${b.id}`} className="font-mono text-sm font-semibold hover:text-primary">
@@ -274,7 +274,7 @@ export default function AllBookingsPage() {
             <p className="text-sm text-muted-foreground text-center py-8">No approved captains available.</p>
           ) : (
             <div className="space-y-2">
-              {captains.map((c) => {
+              {captains.map((c: any) => {
                 const isBusy = c.captainProfile?.availabilityStatus === 'BUSY'
                 return (
                   <button

@@ -434,7 +434,7 @@ export default function CaptainPage() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Active Assignments</h2>
             {activeSegments.length > 0 ? (
               <div className="space-y-3">
-                {activeSegments.map((s) => (
+                {activeSegments.map((s: any) => (
                   <Card key={s.id} className="border-primary/20">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-start justify-between gap-3">
@@ -489,7 +489,7 @@ export default function CaptainPage() {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Completed Deliveries</h2>
           {completedSegments.length > 0 ? (
             <div className="space-y-3 max-h-[95vh] overflow-y-auto pr-2">
-              {completedSegments.map((s) => (
+              {completedSegments.map((s: any) => (
                 <Card key={s.id} className="border-green-200 dark:border-green-900/30">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">

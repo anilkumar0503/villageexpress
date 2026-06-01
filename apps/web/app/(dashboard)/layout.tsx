@@ -188,7 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.replace('/login')
   }
 
-  const initials = user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+  const initials = user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">

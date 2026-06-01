@@ -141,7 +141,7 @@ export default function PricingRulesPage() {
     const res = await fetch(`/api/routes/${selectedRouteId}`, { headers: { Authorization: `Bearer ${accessToken}` } })
     const data = await res.json()
     if (data.success) {
-      setRoutes((prev) => prev.map((r) => (r.id === selectedRouteId ? data.data : r)))
+      setRoutes((prev) => prev.map((r: any) => (r.id === selectedRouteId ? data.data : r)))
     }
     setRouteLoading(false)
   }

@@ -97,7 +97,7 @@ export default function MyBookingsPage() {
           <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            {Object.keys(STATUS_COLORS).map((s) => (
+            {Object.keys(STATUS_COLORS).map((s: string) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
           </SelectContent>

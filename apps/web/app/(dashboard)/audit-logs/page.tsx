@@ -78,7 +78,7 @@ export default function AuditLogsPage() {
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Actions</SelectItem>
-            {ACTIONS.map((a) => <SelectItem key={a} value={a}>{a.replace(/_/g, ' ')}</SelectItem>)}
+            {ACTIONS.map((a: string) => <SelectItem key={a} value={a}>{a.replace(/_/g, ' ')}</SelectItem>)}
           </SelectContent>
         </Select>
         <div className="relative flex-1 max-w-xs">

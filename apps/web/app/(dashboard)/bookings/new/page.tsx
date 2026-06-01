@@ -642,21 +642,21 @@ export default function NewBookingPage() {
                   <Label>State</Label>
                   <Select value={pickupState} onValueChange={(v) => { setPickupState(v); setPickupDistrict(''); setPickupLocationId(''); loadDistricts(v, 'pickup') }}>
                     <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                    <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    <SelectContent>{states.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>District</Label>
                   <Select value={pickupDistrict} disabled={!pickupState} onValueChange={(v) => { setPickupDistrict(v); setPickupLocationId(''); loadLocations(pickupState, v, 'pickup') }}>
                     <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
-                    <SelectContent>{pickupDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                    <SelectContent>{pickupDistricts.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               <div className="space-y-1.5">
                 <Label>Point</Label>
                 <Select value={pickupLocationId} disabled={!pickupDistrict} onValueChange={setPickupLocationId}>
                   <SelectTrigger><SelectValue placeholder="Select point" /></SelectTrigger>
-                  <SelectContent>{pickupLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
+                  <SelectContent>{pickupLocations.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               </div>
@@ -715,14 +715,14 @@ export default function NewBookingPage() {
                 <Label>District</Label>
                 <Select value={dropDistrict} disabled={!dropState} onValueChange={(v) => { setDropDistrict(v); setDropLocationId(''); loadLocations(dropState, v, 'drop') }}>
                   <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
-                  <SelectContent>{dropDistricts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                  <SelectContent>{dropDistricts.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Point</Label>
                 <Select value={dropLocationId} disabled={!dropDistrict} onValueChange={setDropLocationId}>
                   <SelectTrigger><SelectValue placeholder="Select point" /></SelectTrigger>
-                  <SelectContent>{dropLocations.filter((l) => l.id !== pickupLocationId).map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
+                  <SelectContent>{dropLocations.filter((l: any) => l.id !== pickupLocationId).map((l: any) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               </div>
@@ -784,7 +784,7 @@ export default function NewBookingPage() {
               <Select value={parcelType} onValueChange={setParcelType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['DOCUMENTS', 'GENERAL', 'FRAGILE', 'PERISHABLE'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {['DOCUMENTS', 'GENERAL', 'FRAGILE', 'PERISHABLE'].map((t: string) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

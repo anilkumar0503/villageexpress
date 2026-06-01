@@ -189,7 +189,7 @@ export default function UsersPage() {
         const userData = await userRes.json()
         if (userData.success && userData.data.items.length > 0) {
           const updatedUser = userData.data.items[0]
-          setUsers((prev) => prev.map((u) => u.id === updatedUser.id ? updatedUser : u))
+          setUsers((prev) => prev.map((u: any) => u.id === updatedUser.id ? updatedUser : u))
           setEditingCaptainPoints(updatedUser)
         }
         setEditingCaptainPoints(null)
@@ -277,7 +277,7 @@ export default function UsersPage() {
       })
       const data = await res.json()
       if (data.success) {
-        setUsers((prev) => prev.map((u) => {
+        setUsers((prev) => prev.map((u: any) => {
           if (u.id === userId && u.captainProfile) {
             return {
               ...u,
@@ -327,7 +327,7 @@ export default function UsersPage() {
       const data = await res.json()
       if (data.success) {
         // Update only the changed fields in the local state to preserve nested data
-        setUsers((prev) => prev.map((u) => {
+        setUsers((prev) => prev.map((u: any) => {
           if (u.id === editingUser.id) {
             return {
               ...u,

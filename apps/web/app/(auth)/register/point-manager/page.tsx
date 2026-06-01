@@ -184,7 +184,7 @@ export default function PointManagerRegisterPage() {
                 <Label>State</Label>
                 <Select onValueChange={(v) => set('state', v)}>
                   <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                  <SelectContent>{states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{states.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">

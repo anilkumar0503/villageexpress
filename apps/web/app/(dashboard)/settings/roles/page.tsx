@@ -152,7 +152,7 @@ export default function RolesPermissionsPage() {
           </div>
 
           <div className="space-y-3">
-            {roles.map((r) => (
+            {roles.map((r: any) => (
               <Card key={r.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -202,7 +202,7 @@ export default function RolesPermissionsPage() {
           </div>
 
           <div className="space-y-3">
-            {permissions.map((p) => (
+            {permissions.map((p: any) => (
               <Card key={p.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -232,7 +232,7 @@ export default function RolesPermissionsPage() {
               <Select value={assignForm.permissionId} onValueChange={(v) => setAssignForm((f) => ({ ...f, permissionId: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {permissions.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  {permissions.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

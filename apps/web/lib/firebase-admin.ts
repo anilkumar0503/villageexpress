@@ -65,7 +65,7 @@ export async function sendNotificationToUser(
     where: { userId },
     select: { fcmToken: true },
   })
-  const tokenList = tokens.map((t) => t.fcmToken)
+  const tokenList = tokens.map((t: any) => t.fcmToken)
   await sendPushNotification(tokenList, payload)
 }
 

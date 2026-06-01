@@ -174,7 +174,7 @@ export default function CommissionsSettingsPage() {
               <SelectValue placeholder="Select a route..." />
             </SelectTrigger>
             <SelectContent>
-              {routes.map((r) => (
+              {routes.map((r: any) => (
                 <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
               ))}
             </SelectContent>
@@ -204,7 +204,7 @@ export default function CommissionsSettingsPage() {
                         <SelectValue placeholder="Segment..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedRoute?.segments.map((s) => (
+                        {selectedRoute?.segments.map((s: any) => (
                           <SelectItem key={s.id} value={s.id}>
                             Seg {s.sequenceOrder}: {s.fromLocation.pointName} → {s.toLocation.pointName}
                           </SelectItem>

@@ -375,7 +375,7 @@ export default function TestimonialsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5].map((r) => (
+                  {[1, 2, 3, 4, 5].map((r: number) => (
                     <SelectItem key={r} value={String(r)}>{r} Star{r !== 1 ? 's' : ''}</SelectItem>
                   ))}
                 </SelectContent>
