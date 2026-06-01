@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-        .then((r) => r.json())
+        .then((r: Response) => r.json())
         .then((d) => {
           if (d.success) {
             const { setAuth } = useAuth.getState()
