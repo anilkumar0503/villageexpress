@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@ve/db'
 import { requireAuth, requireAnyRole } from '@/lib/auth/permissions'
-import { RemittanceStatus } from '@prisma/client'
+
+type RemittanceStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAuth(req)
