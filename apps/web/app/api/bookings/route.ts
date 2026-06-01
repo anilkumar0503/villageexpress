@@ -375,7 +375,7 @@ export async function POST(req: NextRequest) {
         deliveryOtpExpiresAt,
         ...(selectedRoute && {
           segments: {
-            create: selectedRoute.segments.map((segment) => ({
+            create: selectedRoute.segments.map((segment: any) => ({
               routeSegmentId: segment.id,
               sequenceOrder: segment.sequenceOrder,
               status: segment.sequenceOrder === 1 ? 'PENDING' : 'PENDING',

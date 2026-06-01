@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { categoryIds, tagIds, ...blogData } = parsed.data
 
-    const blog = await prisma.$transaction(async (tx) => {
+    const blog = await prisma.$transaction(async (tx: any) => {
       // Update blog
       const updatedBlog = await tx.blog.update({
         where: { id },
@@ -105,7 +105,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       })
       if (categoryIds && categoryIds.length > 0) {
         await tx.blogCategoryOnBlog.createMany({
-          data: categoryIds.map((categoryId) => ({
+          data: categoryIds.map((categoryId: any) => ({
             blogId: id,
             categoryId,
           })),
@@ -118,7 +118,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       })
       if (tagIds && tagIds.length > 0) {
         await tx.blogTagOnBlog.createMany({
-          data: tagIds.map((tagId) => ({
+          data: tagIds.map((tagId: any) => ({
             blogId: id,
             tagId,
           })),

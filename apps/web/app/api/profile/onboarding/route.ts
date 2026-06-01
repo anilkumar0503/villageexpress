@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     })
 
     await prisma.captainPointAssignment.createMany({
-      data: selectedPoints.map((pointId) => ({
+      data: selectedPoints.map((pointId: any) => ({
         captainId: captainProfile.id,
         locationId: pointId,
       })),

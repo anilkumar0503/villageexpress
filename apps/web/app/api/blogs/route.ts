@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
       // Create category relationships
       if (categoryIds && categoryIds.length > 0) {
         await tx.blogCategoryOnBlog.createMany({
-          data: categoryIds.map((categoryId) => ({
+          data: categoryIds.map((categoryId: any) => ({
             blogId: newBlog.id,
             categoryId,
           })),
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
       // Create tag relationships
       if (tagIds && tagIds.length > 0) {
         await tx.blogTagOnBlog.createMany({
-          data: tagIds.map((tagId) => ({
+          data: tagIds.map((tagId: any) => ({
             blogId: newBlog.id,
             tagId,
           })),

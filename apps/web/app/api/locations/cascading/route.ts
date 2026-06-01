@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { states: states.map((s) => s.state) },
+      data: { states: states.map((s: any) => s.state) },
     })
   }
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { districts: districts.map((d) => d.district) },
+      data: { districts: districts.map((d: any) => d.district) },
     })
   }
 

@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
     })
 
     // Calculate total distance for each route
-    const routesWithDistance = routes.map((route) => {
-      const totalDistance = route.segments.reduce((sum, seg) => sum + Number(seg.distanceKm), 0)
+    const routesWithDistance = routes.map((route: any) => {
+      const totalDistance = route.segments.reduce((sum: any, seg: any) => sum + Number(seg.distanceKm), 0)
       return {
         ...route,
         totalDistance,

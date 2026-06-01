@@ -39,18 +39,18 @@ export async function GET(req: NextRequest) {
       select: { id: true, fromLocationId: true, toLocationId: true },
     })
 
-    const segmentIds = routeSegmentIds.map((rs) => rs.id)
+    const segmentIds = routeSegmentIds.map((rs: any) => rs.id)
 
     // Get booking segments for these route segments
     // Filter logic: 
     // - If PM's location is fromLocation (source): show all statuses
     // - If PM's location is toLocation (destination): only show when segment is IN_TRANSIT or higher (captain assigned and on the way)
     const sourceSegmentIds = routeSegmentIds
-      .filter((rs) => rs.fromLocationId === pmProfile.shopLocationId)
-      .map((rs) => rs.id)
+      .filter((rs: any) => rs.fromLocationId === pmProfile.shopLocationId)
+      .map((rs: any) => rs.id)
     const destSegmentIds = routeSegmentIds
-      .filter((rs) => rs.toLocationId === pmProfile.shopLocationId)
-      .map((rs) => rs.id)
+      .filter((rs: any) => rs.toLocationId === pmProfile.shopLocationId)
+      .map((rs: any) => rs.id)
 
     const allowedDestStatuses = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED']
 
@@ -262,7 +262,7 @@ export async function GET(req: NextRequest) {
     const allItems = [...segments, ...directSegments]
 
     // Annotate each segment with the PM's role at this stop
-    const annotated = allItems.map((seg) => {
+    const annotated = allItems.map((seg: any) => {
       const toLocationId = (seg.routeSegment as any).toLocationId || seg.routeSegment.toLocation.id
       return {
         ...seg,

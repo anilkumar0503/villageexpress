@@ -116,7 +116,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
           // Create new point assignments
           await prisma.captainPointAssignment.createMany({
-            data: selectedPoints.map((locationId) => ({
+            data: selectedPoints.map((locationId: any) => ({
               captainId: captainProfile.id,
               locationId,
             })),

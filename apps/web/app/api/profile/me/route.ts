@@ -155,7 +155,7 @@ export async function PUT(req: NextRequest) {
           // Create new assignments
           if (selectedPoints.length > 0) {
             await prisma.captainPointAssignment.createMany({
-              data: selectedPoints.map((locationId) => ({
+              data: selectedPoints.map((locationId: any) => ({
                 captainId: captainProfile.id,
                 locationId,
               })),

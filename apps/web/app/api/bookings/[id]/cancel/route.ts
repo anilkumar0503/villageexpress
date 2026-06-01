@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         select: { id: true },
       })
 
-      const segmentIds = routeSegmentIds.map((rs) => rs.id)
+      const segmentIds = routeSegmentIds.map((rs: any) => rs.id)
 
       // Check if booking has a pending segment at PM's location
       const hasPendingSegment = booking.segments.some(

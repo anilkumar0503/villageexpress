@@ -88,7 +88,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     })
 
     if (bookingWithLocations && captain.captainProfile?.pointAssignments) {
-      const assignedLocationIds = captain.captainProfile.pointAssignments.map((pa) => pa.locationId)
+      const assignedLocationIds = captain.captainProfile.pointAssignments.map((pa: any) => pa.locationId)
       const hasPickupCoverage = assignedLocationIds.includes(bookingWithLocations.pickupLocationId)
       const hasDropCoverage = assignedLocationIds.includes(bookingWithLocations.dropLocationId)
 

@@ -75,15 +75,15 @@ export async function GET(req: NextRequest) {
         inProgressTickets,
         resolvedTickets,
         closedTickets,
-        ticketsByCategory: ticketsByCategory.map((item) => ({
+        ticketsByCategory: ticketsByCategory.map((item: any) => ({
           category: item.category,
           count: item._count,
         })),
-        ticketsByPriority: ticketsByPriority.map((item) => ({
+        ticketsByPriority: ticketsByPriority.map((item: any) => ({
           priority: item.priority,
           count: item._count,
         })),
-        ticketsByStatus: ticketsByStatus.map((item) => ({
+        ticketsByStatus: ticketsByStatus.map((item: any) => ({
           status: item.status,
           count: item._count,
         })),
