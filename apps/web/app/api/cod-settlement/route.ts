@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   // Create remittance record for each collection
   const remittances = await Promise.all(
-    collections.map((collection) =>
+    collections.map((collection: any) =>
       prisma.codRemittance.create({
         data: {
           collectionId: collection.id,
