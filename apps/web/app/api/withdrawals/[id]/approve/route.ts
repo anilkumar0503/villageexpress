@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     }
 
     if (action === 'APPROVE') {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // Update withdrawal status
         await tx.withdrawalRequest.update({
           where: { id },

@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
 
     const { categoryIds, tagIds, ...blogData } = parsed.data
 
-    const blog = await prisma.$transaction(async (tx) => {
+    const blog = await prisma.$transaction(async (tx: any) => {
       const newBlog = await tx.blog.create({
         data: {
           ...blogData,

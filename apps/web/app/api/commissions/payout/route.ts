@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Process each commission as a payout
-  const results = await prisma.$transaction(async (tx) => {
+  const results = await prisma.$transaction(async (tx: any) => {
     const processed = []
 
     for (const commission of commissions) {

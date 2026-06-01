@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const collectionLocationId = isAtPickup ? booking.pickupLocationId : booking.dropLocationId
 
       // Update booking with COD collection details and create CodCollection record
-      const updatedBooking = await prisma.$transaction(async (tx) => {
+      const updatedBooking = await prisma.$transaction(async (tx: any) => {
         const booking = await tx.booking.update({
           where: { id: bookingId },
           data: {
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const collectionLocationId = isAtPickup ? segment.routeSegment.fromLocationId : segment.routeSegment.toLocationId
 
     // Update segment with COD collection details and create CodCollection record
-    const updatedSegment = await prisma.$transaction(async (tx) => {
+    const updatedSegment = await prisma.$transaction(async (tx: any) => {
       const segment = await tx.bookingSegment.update({
         where: { id: segmentId },
         data: {

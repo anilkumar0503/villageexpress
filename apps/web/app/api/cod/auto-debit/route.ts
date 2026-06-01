@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Process auto-debit using transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       let remainingToDebit = Number(collection.amount)
       const commissionsToDebit: string[] = []
 
