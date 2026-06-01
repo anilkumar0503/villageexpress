@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       message: `Reset ${result.count} captains to AVAILABLE`,
       data: {
         resetCount: result.count,
-        captains: busyCaptains.map(c => ({
+        captains: busyCaptains.map((c: any) => ({
           id: c.user.id,
           displayId: c.user.displayId,
           name: c.user.name,
