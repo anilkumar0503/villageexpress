@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     include: { userRoles: { include: { role: true } } },
   })
 
-  const isAdminUser = user?.userRoles.some((ur) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
+  const isAdminUser = user?.userRoles.some((ur: any) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
 
   if (!isAdminUser && ticket.userId !== session!.userId) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 })
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { userRoles: { include: { role: true } } },
     })
 
-    const isAdminUser = user?.userRoles.some((ur) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
+    const isAdminUser = user?.userRoles.some((ur: any) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
 
     if (!isAdminUser && ticket.userId !== session!.userId) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 })

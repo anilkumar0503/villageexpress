@@ -48,7 +48,7 @@ export async function requireAnyRole(req: Request, roles: string[]) {
     CUSTOMER: 'booking:create',
   }
 
-  const hasRole = roles.some((role) => {
+  const hasRole = roles.some((role: string) => {
     const sentinel = rolePermMap[role]
     return sentinel ? permissions.includes(sentinel) : false
   })

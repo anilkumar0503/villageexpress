@@ -12,12 +12,12 @@ export function useRole() {
 
   const hasAnyRole = (roleNames: string[]): boolean => {
     if (!user) return false
-    return roleNames.some((r) => user.roles.includes(r))
+    return roleNames.some((r: string) => user.roles.includes(r))
   }
 
   const hasAllRoles = (roleNames: string[]): boolean => {
     if (!user) return false
-    return roleNames.every((r) => user.roles.includes(r))
+    return roleNames.every((r: string) => user.roles.includes(r))
   }
 
   return { hasRole, hasAnyRole, hasAllRoles }

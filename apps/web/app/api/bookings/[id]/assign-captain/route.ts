@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    const isCaptain = captain.userRoles.some((ur) => ur.role.name === 'CAPTAIN')
+    const isCaptain = captain.userRoles.some((ur: any) => ur.role.name === 'CAPTAIN')
     if (!isCaptain) {
       return NextResponse.json(
         { success: false, error: 'Selected user is not a Captain' },

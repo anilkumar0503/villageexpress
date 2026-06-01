@@ -36,12 +36,12 @@ export function usePermissions() {
 
   const hasAnyPermission: PermissionsCheck = (perms) => {
     if (loading) return false
-    return perms.some((p) => permissions.has(p))
+    return perms.some((p: string) => permissions.has(p))
   }
 
   const hasAllPermissions: PermissionsCheck = (perms) => {
     if (loading) return false
-    return perms.every((p) => permissions.has(p))
+    return perms.every((p: string) => permissions.has(p))
   }
 
   return { hasPermission, hasAnyPermission, hasAllPermissions, loading }

@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     include: { userRoles: { include: { role: true } } },
   })
 
-  const isAdminUser = user?.userRoles.some((ur) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
+  const isAdminUser = user?.userRoles.some((ur: any) => ur.role.name === 'ADMIN' || ur.role.name === 'SUPER_ADMIN')
 
   const where: any = {}
   
