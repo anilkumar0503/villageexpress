@@ -104,7 +104,7 @@ export default function RoutesPage() {
     fetch('/api/locations?pageSize=200&isActive=true', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setAllLocations(d.data.items) })
   }, [accessToken])
 
@@ -146,9 +146,9 @@ export default function RoutesPage() {
   async function handleSave() {
     if (!name.trim()) return setError('Route name is required')
     if (!sourceLocationId || !destLocationId) return setError('Source and destination locations are required')
-    if (segments.some((s) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
+    if (segments.some((s: any) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
       return setError('All segment fields are required')
-    if (pricingRules.some((r) => !r.basePrice || !r.pricePerKm))
+    if (pricingRules.some((r: any) => !r.basePrice || !r.pricePerKm))
       return setError('Base price and price per km are required for all pricing rules')
 
     setSaving(true); setError('')
@@ -197,7 +197,7 @@ export default function RoutesPage() {
     setEditDestId(route.destinationLocationId)
     setEditDays(String(route.estimatedDays))
     setEditSegments(
-      route.segments.map((seg) => ({
+      route.segments.map((seg: any) => ({
         fromLocationId: seg.fromLocation.id,
         toLocationId: seg.toLocation.id,
         distanceKm: String(seg.distanceKm),
@@ -211,7 +211,7 @@ export default function RoutesPage() {
   async function handleUpdate() {
     if (!editName.trim()) return setEditError('Route name is required')
     if (!editDays || Number(editDays) < 1) return setEditError('Estimated days must be at least 1')
-    if (editSegments.some((s) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
+    if (editSegments.some((s: any) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
       return setEditError('All segment fields are required')
     setSaving(true); setEditError('')
     try {
@@ -452,7 +452,7 @@ export default function RoutesPage() {
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Segments</p>
                       <div className="space-y-1.5">
-                        {route.segments.map((seg) => (
+                        {route.segments.map((seg: any) => (
                           <div key={seg.id} className="flex items-center gap-2 text-sm">
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium w-5 text-center">{seg.sequenceOrder}</span>
                             <span className="flex-1">{seg.fromLocation.pointName} → {seg.toLocation.pointName}</span>

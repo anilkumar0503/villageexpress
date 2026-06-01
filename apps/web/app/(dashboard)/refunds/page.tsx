@@ -45,7 +45,7 @@ export default function RefundsPage() {
     fetch(`/api/refunds?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setRefunds(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }

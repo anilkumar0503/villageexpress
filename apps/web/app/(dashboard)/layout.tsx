@@ -179,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const visibleNavSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.roles || item.roles.some((r) => hasRole(r))),
+    items: section.items.filter((item) => !item.roles || item.roles.some((r: string) => hasRole(r))),
   })).filter((section) => section.items.length > 0)
 
   async function handleLogout() {

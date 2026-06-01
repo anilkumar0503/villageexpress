@@ -21,7 +21,7 @@ export function usePermissions() {
     fetch('/api/auth/permissions', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) setPermissions(new Set(d.data.permissions))
         setLoading(false)

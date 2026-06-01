@@ -35,8 +35,8 @@ export default function RolesPermissionsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/roles', { headers: { Authorization: `Bearer ${accessToken}` } }).then((r) => r.json()),
-      fetch('/api/permissions', { headers: { Authorization: `Bearer ${accessToken}` } }).then((r) => r.json()),
+      fetch('/api/roles', { headers: { Authorization: `Bearer ${accessToken}` } }).then((r: Response) => r.json()),
+      fetch('/api/permissions', { headers: { Authorization: `Bearer ${accessToken}` } }).then((r: Response) => r.json()),
     ]).then(([r, p]) => {
       if (r.success) setRoles(r.data)
       if (p.success) setPermissions(p.data)

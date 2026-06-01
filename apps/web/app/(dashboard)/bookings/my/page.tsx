@@ -70,7 +70,7 @@ export default function MyBookingsPage() {
     fetch(`/api/bookings/my?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) { setBookings(d.data.items); setTotal(d.data.total) }
       })

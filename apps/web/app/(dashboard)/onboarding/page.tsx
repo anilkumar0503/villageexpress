@@ -33,7 +33,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     fetch('/api/locations/cascading')
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setStates(d.data.states) })
   }, [])
 

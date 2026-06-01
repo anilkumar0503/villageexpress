@@ -101,7 +101,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     fetch(`/api/messages?bookingId=${booking.id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) setMessages(d.data)
       })
@@ -140,7 +140,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     fetch(`/api/bookings/${id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) setBooking(d.data)
         else setError(d.error)
@@ -153,7 +153,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       fetch('/api/wallet', {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-        .then((r) => r.json())
+        .then((r: Response) => r.json())
         .then((d) => {
           if (d.success) setWalletBalance(Number(d.data.balance))
         })

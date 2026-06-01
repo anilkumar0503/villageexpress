@@ -72,7 +72,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
       // Check if booking has a pending segment at PM's location
       const hasPendingSegment = booking.segments.some(
-        (seg) => segmentIds.includes(seg.routeSegmentId) && seg.status === 'PENDING'
+        (seg: any) => segmentIds.includes(seg.routeSegmentId) && seg.status === 'PENDING'
       )
 
       if (!hasPendingSegment) {

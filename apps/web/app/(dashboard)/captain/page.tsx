@@ -213,7 +213,7 @@ export default function CaptainPage() {
   useEffect(() => {
     if (!accessToken) return
     fetch('/api/commissions/my', { headers: { Authorization: `Bearer ${accessToken}` } })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setEarnings(d.data.summary) })
   }, [accessToken])
 

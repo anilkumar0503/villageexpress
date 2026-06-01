@@ -44,7 +44,7 @@ export default function ContactSubmissionsPage() {
     fetch(`/api/contact-submissions?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setSubmissions(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }, [statusFilter, page, accessToken])

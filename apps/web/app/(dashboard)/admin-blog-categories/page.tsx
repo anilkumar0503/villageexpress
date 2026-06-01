@@ -43,7 +43,7 @@ export default function BlogCategoriesPage() {
     fetch('/api/blog-categories?admin=true', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setCategories(d.data) })
       .finally(() => setLoading(false))
   }, [accessToken])

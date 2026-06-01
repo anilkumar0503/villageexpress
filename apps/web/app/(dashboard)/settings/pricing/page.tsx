@@ -107,7 +107,7 @@ export default function PricingRulesPage() {
 
   useEffect(() => {
     fetch('/api/locations?pageSize=200&isActive=true', { headers: { Authorization: `Bearer ${accessToken}` } })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setAllLocations(d.data.items) })
   }, [accessToken])
 
@@ -484,7 +484,7 @@ export default function PricingRulesPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {selectedRoute.segments.map((seg) => (
+                        {selectedRoute.segments.map((seg: any) => (
                           <div key={seg.id} className="flex items-center gap-2 text-sm bg-muted/40 rounded-lg p-2">
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium w-5 text-center">{seg.fromLocation.pointName[0]}</span>
                             <span className="flex-1">{seg.fromLocation.pointName} → {seg.toLocation.pointName}</span>

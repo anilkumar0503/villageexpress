@@ -41,7 +41,7 @@ export default function BlogTagsPage() {
     fetch('/api/blog-tags?admin=true', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setTags(d.data) })
       .finally(() => setLoading(false))
   }, [accessToken])

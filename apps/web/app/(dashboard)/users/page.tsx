@@ -368,7 +368,7 @@ export default function UsersPage() {
     fetch(`/api/users?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setUsers(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }, [debouncedSearch, roleFilter, approvalFilter, page, accessToken])

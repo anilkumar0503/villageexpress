@@ -687,7 +687,7 @@ export default function PMQueuePage() {
                       {s.booking.segments.length > 0 && (() => {
                         // Build stop nodes: fromLocation of each seg + final toLocation
                         const stops = [
-                          ...s.booking.segments.map((seg) => seg.routeSegment.fromLocation.pointName),
+                          ...s.booking.segments.map((seg: any) => seg.routeSegment.fromLocation.pointName),
                           s.booking.segments[s.booking.segments.length - 1].routeSegment.toLocation.pointName,
                         ]
                         // My stop index:

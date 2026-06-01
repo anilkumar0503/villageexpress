@@ -27,7 +27,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetch(`/api/reports?days=${days}`, { headers: { Authorization: `Bearer ${accessToken}` } })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) setData(d.data)
         setLoading(false)

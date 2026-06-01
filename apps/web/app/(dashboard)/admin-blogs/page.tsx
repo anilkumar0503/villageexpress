@@ -96,7 +96,7 @@ export default function BlogsPage() {
     fetch(`/api/blogs?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setBlogs(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }, [statusFilter, page, accessToken])

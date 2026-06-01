@@ -82,7 +82,7 @@ export default function AllBookingsPage() {
     fetch('/api/locations?locationType=POINT&pageSize=200', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setLocations(d.data.items) })
   }, [accessToken])
 

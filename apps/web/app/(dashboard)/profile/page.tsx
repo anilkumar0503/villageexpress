@@ -44,13 +44,13 @@ export default function ProfilePage() {
   useEffect(() => {
     // Load states for district selection
     fetch('/api/locations/cascading')
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setStates(d.data.states) })
   }, [])
 
   useEffect(() => {
     fetch('/api/profile/me', { headers: { Authorization: `Bearer ${accessToken}` } })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => {
         if (d.success) {
           const p: Profile = d.data
@@ -72,7 +72,7 @@ export default function ProfilePage() {
             fetch(`/api/locations?district=${encodeURIComponent(districtToUse)}&isActive=true`, {
               headers: { Authorization: `Bearer ${accessToken}` },
             })
-              .then((r) => r.json())
+              .then((r: Response) => r.json())
               .then((ld) => { if (ld.success) setAvailablePoints(ld.data.items) })
           }
           if (p.pointManagerProfile) setPmForm({ shopName: p.pointManagerProfile.shopName, shopPhoto: p.pointManagerProfile.shopPhoto ?? '' })

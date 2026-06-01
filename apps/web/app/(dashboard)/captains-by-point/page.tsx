@@ -77,7 +77,7 @@ export default function CaptainsByPointPage() {
     fetch('/api/locations', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setLocations(d.data.items) })
   }, [accessToken])
 
@@ -95,7 +95,7 @@ export default function CaptainsByPointPage() {
     fetch(`/api/captains?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) setCaptains(d.data) })
       .finally(() => setLoading(false))
   }, [selectedLocationId, availabilityFilter, accessToken])

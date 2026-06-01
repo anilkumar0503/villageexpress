@@ -85,7 +85,7 @@ export default function NewBookingPage() {
   const totalSteps = hasRoutes ? 4 : 3
 
   useEffect(() => {
-    fetch('/api/locations/cascading').then((r) => r.json()).then((d) => {
+    fetch('/api/locations/cascading').then((r: Response) => r.json()).then((d) => {
       if (d.success) setStates(d.data.states)
     })
     fetchVehicleConfigurations()
@@ -104,7 +104,7 @@ export default function NewBookingPage() {
     if (pickupId || dropId) {
       fetch('/api/locations', {
         headers: { Authorization: `Bearer ${accessToken}` },
-      }).then((r) => r.json()).then((d) => {
+      }).then((r: Response) => r.json()).then((d) => {
         if (d.success) {
           const allLocations = d.data.items
           
@@ -273,7 +273,7 @@ export default function NewBookingPage() {
           ...(selectedRouteId && selectedRouteId !== 'none' && { routeId: selectedRouteId }),
         }),
       })
-        .then((r) => r.json())
+        .then((r: Response) => r.json())
         .then((d) => {
           if (d.success) { 
             setPricePreview(d.data.finalPrice); 

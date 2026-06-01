@@ -57,7 +57,7 @@ export default function TestimonialsPage() {
     fetch(`/api/testimonials?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setTestimonials(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }, [statusFilter, page, accessToken])

@@ -57,7 +57,7 @@ export default function AuditLogsPage() {
     fetch(`/api/audit-logs?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then((r: Response) => r.json())
       .then((d) => { if (d.success) { setLogs(d.data.items); setTotal(d.data.total) } })
       .finally(() => setLoading(false))
   }, [page, actionFilter, debouncedResource, accessToken])
