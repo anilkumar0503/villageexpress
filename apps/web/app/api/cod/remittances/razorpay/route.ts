@@ -3,11 +3,6 @@ import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
 import Razorpay from 'razorpay'
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-})
-
 // POST /api/cod/remittances/razorpay - Create Razorpay order for COD remittance
 export async function POST(req: NextRequest) {
   const { error, session } = await requireAuth(req)
@@ -19,6 +14,19 @@ export async function POST(req: NextRequest) {
   if (!collectionId || !amount) {
     return NextResponse.json({ success: false, error: 'collectionId and amount are required' }, { status: 400 })
   }
+
+  // Initialize Razorpay only if credentials are available
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+
+  if (!keyId || !keySecret) {
+    return NextResponse.json({ success: false, error: 'Razorpay credentials not configured' }, { status: 500 })
+  }
+
+  const razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  })
 
   try {
     // Verify collection exists and belongs to user
