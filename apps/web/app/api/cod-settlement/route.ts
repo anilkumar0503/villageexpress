@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Calculate total amount
-  const totalAmount = collections.reduce((sum, col) => sum + Number(col.amount), 0)
+  const totalAmount = collections.reduce((sum: number, col: any) => sum + Number(col.amount), 0)
 
   // Create remittance record for each collection
   const remittances = await Promise.all(

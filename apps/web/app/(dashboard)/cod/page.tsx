@@ -259,7 +259,7 @@ export default function CodPage() {
                       <td className="p-3">
                         {collection.remittances.length > 0 ? (
                           <div>
-                            <div className="font-medium">₹{collection.remittances.reduce((sum, r) => sum + r.amount, 0)}</div>
+                            <div className="font-medium">₹{collection.remittances.reduce((sum: number, r: any) => sum + r.amount, 0)}</div>
                             <div className="text-sm text-muted-foreground">{collection.remittances.length} payment(s)</div>
                           </div>
                         ) : (

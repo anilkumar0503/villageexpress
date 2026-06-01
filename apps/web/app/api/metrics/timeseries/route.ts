@@ -150,8 +150,8 @@ function generateTimeSeriesData(
 
     // Calculate metrics
     const deliveries = periodSegments.filter(s => s.status === 'DELIVERED').length
-    const codCollected = periodCOD.reduce((sum, c) => sum + Number(c.amount), 0)
-    const commissionEarned = periodCommission.reduce((sum, c) => sum + Number(c.amount), 0)
+    const codCollected = periodCOD.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
+    const commissionEarned = periodCommission.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
 
     // Format label
     let label: string

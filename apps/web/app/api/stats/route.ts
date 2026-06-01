@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     // COD metrics
     const codCollected = segments
       .filter(s => s.codCollectedAt)
-      .reduce((sum, s) => sum + Number(s.booking.calculatedPrice), 0)
+      .reduce((sum: number, s: any) => sum + Number(s.booking.calculatedPrice), 0)
 
     // Fetch pending COD from COD collections
     const codCollections = await prisma.codCollection.findMany({
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
         status: 'COLLECTED',
       },
     })
-    const pendingCOD = codCollections.reduce((sum, c) => sum + Number(c.amount), 0)
+    const pendingCOD = codCollections.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
 
     // Commission metrics
     const commissionLedger = await prisma.commissionLedger.groupBy({
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       where: { userId },
       _sum: { amount: true },
     })
-    const commission = commissionLedger.reduce((sum, t) => sum + Number(t._sum.amount ?? 0), 0)
+    const commission = commissionLedger.reduce((sum: number, t: any) => sum + Number(t._sum.amount ?? 0), 0)
 
     return NextResponse.json({
       success: true,

@@ -283,7 +283,7 @@ export default function PMQueuePage() {
       const inTransit = allSegmentsForMetrics.filter(s => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(s.status)).length
       const delivered = allSegmentsForMetrics.filter(s => s.status === 'DELIVERED').length
 
-      const codCollected = allSegmentsForMetrics.filter(s => s.codCollectedAt).reduce((sum, s) => sum + Number(s.booking.calculatedPrice), 0)
+      const codCollected = allSegmentsForMetrics.filter(s => s.codCollectedAt).reduce((sum: number, s: any) => sum + Number(s.booking.calculatedPrice), 0)
 
       const pendingCOD = codData.success ? codData.data.totalPending : 0
 

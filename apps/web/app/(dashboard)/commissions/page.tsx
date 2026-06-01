@@ -132,8 +132,8 @@ export default function CommissionsPage() {
   const pendingCommissions = allCommissions.filter((c) => c.status === 'PENDING')
   const approvedCommissions = allCommissions.filter((c) => c.status === 'APPROVED')
   const paidCommissions = allCommissions.filter((c) => c.status === 'PAID')
-  const totalApprovedAmount = approvedCommissions.reduce((sum, c) => sum + Number(c.amount), 0)
-  const totalPaidAmount = paidCommissions.reduce((sum, c) => sum + Number(c.amount), 0)
+  const totalApprovedAmount = approvedCommissions.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
+  const totalPaidAmount = paidCommissions.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
 
   return (
     <div className="space-y-6" data-testid="commissions-page">
@@ -212,7 +212,7 @@ export default function CommissionsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{pendingCommissions.length}</p>
-              <p className="text-xs text-muted-foreground">₹{Number(pendingCommissions.reduce((sum, c) => sum + Number(c.amount), 0)).toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">₹{Number(pendingCommissions.reduce((sum: number, c: any) => sum + Number(c.amount), 0)).toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -320,7 +320,7 @@ export default function CommissionsPage() {
                     <input type="checkbox" checked={selectedIds.length === approvedCommissions.length} onChange={toggleSelectAll} className="h-4 w-4" />
                     <span className="text-sm">Select all ({approvedCommissions.length})</span>
                   </div>
-                  <span className="text-sm font-medium">Selected: ₹{Number(approvedCommissions.filter(c => selectedIds.includes(c.id)).reduce((sum, c) => sum + c.amount, 0)).toFixed(2)}</span>
+                  <span className="text-sm font-medium">Selected: ₹{Number(approvedCommissions.filter(c => selectedIds.includes(c.id)).reduce((sum: number, c: any) => sum + c.amount, 0)).toFixed(2)}</span>
                 </div>
                 <Button onClick={handleProcessPayout} disabled={processing || selectedIds.length === 0} className="w-full gap-2">
                   {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <IndianRupee className="h-4 w-4" />}
