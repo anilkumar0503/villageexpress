@@ -204,8 +204,8 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      const defaultWeight = vehicleConfig?.defaultWeight ?? 5
-      const maxWeight = vehicleConfig?.maxWeight ?? 50
+      const defaultWeight = Number(vehicleConfig?.defaultWeight ?? 5)
+      const maxWeight = Number(vehicleConfig?.maxWeight ?? 50)
 
       // Validate parcel weight against vehicle max weight
       if (parcelWeight > maxWeight) {
@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Coupon not applicable to your account' }, { status: 403 })
       }
 
-      if (priceResult.finalPrice < coupon.minOrderValue) {
+      if (priceResult.finalPrice < Number(coupon.minOrderValue)) {
         return NextResponse.json({ success: false, error: `Minimum order value of ₹${Number(coupon.minOrderValue).toFixed(2)} required` }, { status: 400 })
       }
 
@@ -388,7 +388,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Record coupon usage if coupon was applied
-    if (couponData) {
+    if (couponData && couponId) {
       await prisma.$transaction([
         prisma.coupon.update({
           where: { id: couponId },
@@ -426,8 +426,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Wallet not found' }, { status: 404 })
       }
 
-      if (wallet.balance < finalPrice) {
-        const requiredAmount = finalPrice - wallet.balance
+      if (wallet.balance.toNumber() < finalPrice) {
+        const requiredAmount = finalPrice - wallet.balance.toNumber()
         return NextResponse.json({
           success: false,
           error: 'Insufficient wallet balance',

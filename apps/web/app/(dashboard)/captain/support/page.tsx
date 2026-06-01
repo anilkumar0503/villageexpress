@@ -46,7 +46,7 @@ type TicketDetail = SupportTicket & {
   messages: SupportMessage[]
 }
 
-export default function SupportPage() {
+export default function CaptainSupportPage() {
   const { accessToken } = useAuth()
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [loading, setLoading] = useState(false)
@@ -151,7 +151,6 @@ export default function SupportPage() {
       if (d.success) {
         const messageId = d.data.id
 
-        // Upload attachment if provided
         if (attachmentFile) {
           setUploadingAttachment(true)
           const formData = new FormData()
@@ -462,7 +461,6 @@ export default function SupportPage() {
         </div>
       )}
 
-      {/* Create Ticket Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
@@ -500,6 +498,42 @@ export default function SupportPage() {
                       <SelectItem value="DELAY">Delivery Delay</SelectItem>
                       <SelectItem value="WRONG_DELIVERY">Wrong Delivery</SelectItem>
                       <SelectItem value="DAMAGED_PARCEL">Damaged Parcel</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formData.category === 'ONBOARDING' && (
+                <div className="space-y-1.5">
+                  <Label>Issue Type (Optional)</Label>
+                  <Select value={formData.issueType} onValueChange={(v) => setFormData({ ...formData, issueType: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select issue type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="AADHAAR_REJECTED">Aadhaar Verification Rejected</SelectItem>
+                      <SelectItem value="LICENSE_REJECTED">License Verification Rejected</SelectItem>
+                      <SelectItem value="ONBOARDING_STUCK">Onboarding Process Stuck</SelectItem>
+                      <SelectItem value="ACCOUNT_APPROVAL">Account Approval Issue</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formData.category === 'TECHNICAL' && (
+                <div className="space-y-1.5">
+                  <Label>Issue Type (Optional)</Label>
+                  <Select value={formData.issueType} onValueChange={(v) => setFormData({ ...formData, issueType: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select issue type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="VEHICLE_ISSUE">Vehicle Equipment Issue</SelectItem>
+                      <SelectItem value="APP_CRASH">App Crashing</SelectItem>
+                      <SelectItem value="GPS_ISSUE">GPS/Location Issue</SelectItem>
+                      <SelectItem value="NOTIFICATION_ISSUE">Notification Not Working</SelectItem>
                       <SelectItem value="OTHER">Other</SelectItem>
                     </SelectContent>
                   </Select>

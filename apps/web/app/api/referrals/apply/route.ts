@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth/permissions'
 
 // POST /api/referrals/apply - Apply a referral code during registration
 export async function POST(req: NextRequest) {
-  const { error, session } = await requireAuth(req, 'user:write')
+  const { error, session } = await requireAuth(req)
   if (error) return error
 
   try {
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if referral already exists
-    const existingReferral = await prisma.referral.findUnique({
+    const existingReferral = await prisma.referral.findFirst({
       where: { refereeId: session!.userId },
     })
 

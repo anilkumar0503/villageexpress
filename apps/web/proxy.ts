@@ -21,6 +21,8 @@ const PUBLIC_ROUTES = [
   '/api/blog-categories',
   '/api/blog-tags',
   '/api/testimonials',
+  '/api/support-tickets',
+  '/api/support-attachments',
 ]
 
 const PUBLIC_PAGES = ['/', '/login', '/register', '/register/point-manager', '/register/captain', '/forgot-password', '/reset-password']

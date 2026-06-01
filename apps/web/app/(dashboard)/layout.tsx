@@ -232,6 +232,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <Separator />
 
+      {/* Quick CTA */}
+      <div className="px-4 py-3">
+        {hasRole('CUSTOMER') && (
+          <Button asChild className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+            <Link href="/bookings/new" onClick={() => setSidebarOpen(false)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Booking
+            </Link>
+          </Button>
+        )}
+        {hasRole('CAPTAIN') && (
+          <Button asChild className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
+            <Link href="/captain" onClick={() => setSidebarOpen(false)}>
+              <Truck className="h-4 w-4 mr-2" />
+              My Assignments
+            </Link>
+          </Button>
+        )}
+        {(hasRole('ADMIN') || hasRole('SUPER_ADMIN')) && (
+          <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            <Link href="/admin-welcome" onClick={() => setSidebarOpen(false)}>
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Admin Portal
+            </Link>
+          </Button>
+        )}
+        {hasRole('POINT_MANAGER') && (
+          <Button asChild className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+            <Link href="/bookings/point-manager" onClick={() => setSidebarOpen(false)}>
+              <PackageSearch className="h-4 w-4 mr-2" />
+              My Point Queue
+            </Link>
+          </Button>
+        )}
+      </div>
+
       <div className="px-4 py-4 space-y-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">

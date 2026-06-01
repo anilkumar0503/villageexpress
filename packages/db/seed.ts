@@ -984,6 +984,299 @@ async function main() {
   console.log(`   Price: ₹${testBooking.calculatedPrice}`)
   console.log(`   Segments: ${testBooking.segments.length}`)
 
+  // ─── Support System Seeders ─────────────────────────────────────────────────────
+  console.log('🎫 Seeding support system data...')
+
+  // Canned Responses
+  const cannedResponses = await Promise.all([
+    prisma.cannedResponse.create({
+      data: {
+        title: 'Delivery Delay Response',
+        category: 'BOOKING',
+        content: 'We apologize for the delay in your delivery. Our team is actively tracking your parcel and will ensure it reaches you as soon as possible. You can track your package using the booking number.',
+        isActive: true,
+      },
+    }),
+    prisma.cannedResponse.create({
+      data: {
+        title: 'Payment Failed Response',
+        category: 'PAYMENT',
+        content: 'We understand your payment failed. Please check your payment method and try again. If the issue persists, please contact your bank or use an alternative payment method.',
+        isActive: true,
+      },
+    }),
+    prisma.cannedResponse.create({
+      data: {
+        title: 'KYC Verification Response',
+        category: 'ONBOARDING',
+        content: 'Your KYC documents are under review. This process typically takes 1-2 business days. We will notify you once verification is complete.',
+        isActive: true,
+      },
+    }),
+    prisma.cannedResponse.create({
+      data: {
+        title: 'General Greeting',
+        category: 'GENERAL',
+        content: 'Thank you for contacting Village Express Support. How can we assist you today?',
+        isActive: true,
+      },
+    }),
+  ])
+  console.log(`✅ ${cannedResponses.length} canned responses seeded`)
+
+  // Support Tickets for different users
+  const now = new Date()
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)
+
+  const [customerTicket, captainTicket, pmTicket] = await Promise.all([
+    prisma.supportTicket.create({
+      data: {
+        ticketNumber: 'VE-SUP-20260101-0001',
+        userId: customerUser.id,
+        subject: 'Package not delivered on time',
+        category: 'BOOKING',
+        priority: 'HIGH',
+        status: 'IN_PROGRESS',
+        bookingId: sampleBooking.id,
+        issueType: 'DELAY',
+        assignedTo: adminUser.id,
+        slaDueDate: new Date(now.getTime() + 8 * 60 * 60 * 1000),
+        firstResponseAt: yesterday,
+        messages: {
+          create: [
+            {
+              senderId: customerUser.id,
+              isAdmin: false,
+              content: 'My package was supposed to be delivered yesterday but I still haven\'t received it. Please check the status.',
+              createdAt: twoDaysAgo,
+            },
+            {
+              senderId: adminUser.id,
+              isAdmin: true,
+              content: 'We apologize for the delay. Our team is investigating the issue and will update you shortly.',
+              createdAt: yesterday,
+            },
+          ],
+        },
+      },
+    }),
+    prisma.supportTicket.create({
+      data: {
+        ticketNumber: 'VE-SUP-20260101-0002',
+        userId: captainUser.id,
+        subject: 'App not showing my assigned deliveries',
+        category: 'TECHNICAL',
+        priority: 'MEDIUM',
+        status: 'RESOLVED',
+        captainProfileId: (await prisma.captainProfile.findUnique({ where: { userId: captainUser.id } }))?.id,
+        issueType: 'APP_CRASH',
+        resolvedBy: adminUser.id,
+        resolvedAt: yesterday,
+        satisfactionRating: 5,
+        satisfactionComment: 'Quick and helpful response!',
+        messages: {
+          create: [
+            {
+              senderId: captainUser.id,
+              isAdmin: false,
+              content: 'The captain app is not showing my assigned deliveries for today.',
+              createdAt: twoDaysAgo,
+            },
+            {
+              senderId: adminUser.id,
+              isAdmin: true,
+              content: 'Please try refreshing the app. If the issue persists, clear your app cache and restart.',
+              createdAt: twoDaysAgo,
+            },
+            {
+              senderId: captainUser.id,
+              isAdmin: false,
+              content: 'That worked, thank you!',
+              createdAt: yesterday,
+            },
+          ],
+        },
+      },
+    }),
+    prisma.supportTicket.create({
+      data: {
+        ticketNumber: 'VE-SUP-20260101-0003',
+        userId: pmUser.id,
+        subject: 'Commission payout not received',
+        category: 'PAYMENT',
+        priority: 'HIGH',
+        status: 'OPEN',
+        issueType: 'PAYOUT_DELAY',
+        slaDueDate: new Date(now.getTime() + 8 * 60 * 60 * 1000),
+        messages: {
+          create: [
+            {
+              senderId: pmUser.id,
+              isAdmin: false,
+              content: 'I haven\'t received my commission payout for last week. Please check.',
+              createdAt: now,
+            },
+          ],
+        },
+      },
+    }),
+  ])
+  console.log(`✅ 3 support tickets seeded`)
+
+  // Captain Point Assignments
+  const captainProfile1 = await prisma.captainProfile.findUnique({ where: { userId: captain1.id } })
+  const captainProfile2 = await prisma.captainProfile.findUnique({ where: { userId: captain2.id } })
+  const captainProfile3 = await prisma.captainProfile.findUnique({ where: { userId: captain3.id } })
+  const captainProfile4 = await prisma.captainProfile.findUnique({ where: { userId: captain4.id } })
+
+  await Promise.all([
+    prisma.captainPointAssignment.create({
+      data: {
+        captainId: captainProfile1!.id,
+        locationId: jagitialLoc.id,
+        isActive: true,
+      },
+    }),
+    prisma.captainPointAssignment.create({
+      data: {
+        captainId: captainProfile2!.id,
+        locationId: malialLoc.id,
+        isActive: true,
+      },
+    }),
+    prisma.captainPointAssignment.create({
+      data: {
+        captainId: captainProfile3!.id,
+        locationId: poodoorLoc.id,
+        isActive: true,
+      },
+    }),
+    prisma.captainPointAssignment.create({
+      data: {
+        captainId: captainProfile4!.id,
+        locationId: gangadharaLoc.id,
+        isActive: true,
+      },
+    }),
+  ])
+  console.log(`✅ 4 captain point assignments seeded`)
+
+  // Sample Coupon
+  await prisma.coupon.upsert({
+    where: { code: 'WELCOME20' },
+    update: {},
+    create: {
+      code: 'WELCOME20',
+      type: 'PERCENTAGE',
+      discountType: 'PERCENTAGE',
+      discountValue: 20,
+      minOrderValue: 100,
+      maxDiscountAmount: 100,
+      validFrom: new Date(),
+      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      usageLimit: 1000,
+      usageCount: 0,
+      isActive: true,
+      applicableUsers: [],
+      applicableRoutes: [],
+    },
+  })
+  console.log(`✅ Sample coupon seeded`)
+
+  // Sample Wallet Transaction (instead of Payment)
+  const customerWallet = await prisma.wallet.upsert({
+    where: { userId: customerUser.id },
+    update: {},
+    create: {
+      userId: customerUser.id,
+      balance: 0,
+    },
+  })
+  await prisma.walletTransaction.create({
+    data: {
+      walletId: customerWallet.id,
+      userId: customerUser.id,
+      type: 'BOOKING_PAYMENT',
+      amount: 150,
+      balanceBefore: 150,
+      balanceAfter: 0,
+      description: 'Payment for booking ' + sampleBooking.bookingNumber,
+      referenceId: sampleBooking.id,
+      referenceType: 'BOOKING',
+    },
+  })
+  console.log(`✅ Sample wallet transaction seeded`)
+
+  // Create wallet for captain first
+  const captainWallet = await prisma.wallet.upsert({
+    where: { userId: captain1.id },
+    update: {},
+    create: {
+      userId: captain1.id,
+      balance: 10000,
+    },
+  })
+
+  // Sample Withdrawal Request (instead of Payout)
+  await prisma.withdrawalRequest.upsert({
+    where: { id: 'seed-withdrawal-001' },
+    update: {},
+    create: {
+      id: 'seed-withdrawal-001',
+      userId: captain1.id,
+      walletId: captainWallet.id,
+      amount: 5000,
+      status: 'PENDING',
+    },
+  })
+  console.log(`✅ Sample withdrawal request seeded`)
+
+  // Sample COD Collection first
+  const codCollection = await prisma.codCollection.upsert({
+    where: { id: 'seed-cod-collection-001' },
+    update: {},
+    create: {
+      id: 'seed-cod-collection-001',
+      userId: pmUser.id,
+      bookingId: sampleBooking.id,
+      amount: 15000,
+      collectionDate: twoDaysAgo,
+      collectionMethod: 'MANUAL',
+      status: 'COLLECTED',
+    },
+  })
+
+  // Sample COD Remittance
+  await prisma.codRemittance.upsert({
+    where: { id: 'seed-cod-remittance-001' },
+    update: {},
+    create: {
+      id: 'seed-cod-remittance-001',
+      collectionId: codCollection.id,
+      userId: pmUser.id,
+      amount: 15000,
+      remittanceMethod: 'MANUAL',
+      remittanceDate: yesterday,
+      bankReferenceNumber: 'BANK' + Date.now(),
+      status: 'COMPLETED',
+    },
+  })
+  console.log(`✅ Sample COD remittance seeded`)
+
+  // Sample Audit Log
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUser.id,
+      action: 'CREATE',
+      resource: 'Booking',
+      result: 'GRANTED',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0',
+    },
+  })
+  console.log(`✅ Sample audit log seeded`)
+
   console.log('✅ Seeding complete!')
 }
 

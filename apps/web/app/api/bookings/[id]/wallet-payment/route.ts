@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const remainingToPay = fullAmount.minus(currentPaidAmount)
       const paymentAmount = walletBalance < remainingToPay ? walletBalance : remainingToPay
 
-      if (paymentAmount <= 0) {
+      if (paymentAmount.lte(0)) {
         return NextResponse.json({ success: false, error: 'No wallet balance available' }, { status: 400 })
       }
 

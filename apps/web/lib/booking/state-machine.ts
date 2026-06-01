@@ -14,8 +14,12 @@ export const STATUS_TRANSITIONS: Record<BookingStatus, Transition> = {
     from: ['PENDING'],
     requiredPermission: 'booking:update_status',
   },
-  ASSIGNED: {
+  RECEIVED_AT_POINT: {
     from: ['CONFIRMED'],
+    requiredPermission: 'booking:update_status',
+  },
+  ASSIGNED: {
+    from: ['RECEIVED_AT_POINT'],
     requiredPermission: 'booking:assign_captain',
   },
   PICKED_UP: {

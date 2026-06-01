@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth/permissions'
 
 // POST /api/referrals/process-bonus - Process referral bonus after first booking
 export async function POST(req: NextRequest) {
-  const { error, session } = await requireAuth(req, 'booking:write')
+  const { error, session } = await requireAuth(req)
   if (error) return error
 
   try {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find referral for this user
-    const referral = await prisma.referral.findUnique({
+    const referral = await prisma.referral.findFirst({
       where: { refereeId: booking.customerId },
     })
 

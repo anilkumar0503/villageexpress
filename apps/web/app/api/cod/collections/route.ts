@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if COD already collected for this booking
-    const existingCollection = await prisma.codCollection.findUnique({
+    const existingCollection = await prisma.codCollection.findFirst({
       where: { bookingId: data.bookingId },
     })
 

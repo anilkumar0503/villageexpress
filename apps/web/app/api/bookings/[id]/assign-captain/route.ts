@@ -114,7 +114,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ success: false, error: 'Wallet not found' }, { status: 404 })
       }
 
-      if (wallet.balance < Number(booking.calculatedPrice)) {
+      if (wallet.balance.toNumber() < Number(booking.calculatedPrice)) {
         return NextResponse.json({ success: false, error: 'Insufficient wallet balance' }, { status: 400 })
       }
 

@@ -124,8 +124,8 @@ export async function resolvePrice(input: PricingInput): Promise<PriceCalculatio
   }
 
   // If no vehicle config or no vehicle type, use default weight of 5kg (bike)
-  const defaultWeight = vehicleConfig?.defaultWeight ?? 5
-  const maxWeight = vehicleConfig?.maxWeight ?? 50
+  const defaultWeight = Number(vehicleConfig?.defaultWeight ?? 5)
+  const maxWeight = Number(vehicleConfig?.maxWeight ?? 50)
 
   // Validate parcel weight against vehicle max weight
   if (parcelWeight > maxWeight) {

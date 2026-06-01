@@ -6,13 +6,13 @@ import { requireAuth } from '@/lib/auth/permissions'
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: Promise<{ filename: string }> }
 ) {
   const { error } = await requireAuth(req)
   if (error) return error
 
   try {
-    const { filename } = params
+    const { filename } = await params
     
     // Validate filename to prevent path traversal
     if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {

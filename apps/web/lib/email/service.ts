@@ -36,6 +36,37 @@ export interface CancellationEmailData {
   refundAmount?: number
 }
 
+export interface SupportTicketCreatedEmailData {
+  ticketNumber: string
+  userName: string
+  userEmail: string
+  userPhone: string
+  subject: string
+  category: string
+  priority: string
+  message: string
+  bookingNumber?: string
+}
+
+export interface SupportMessageEmailData {
+  ticketNumber: string
+  ticketSubject: string
+  recipientName: string
+  recipientEmail: string
+  senderName: string
+  message: string
+  isAdmin: boolean
+}
+
+export interface SupportTicketStatusEmailData {
+  ticketNumber: string
+  ticketSubject: string
+  userName: string
+  userEmail: string
+  status: string
+  resolvedBy?: string
+}
+
 class EmailService {
   private apiKey: string | null = null
   private fromEmail: string = 'noreply@villageexpress.com'
@@ -155,6 +186,103 @@ class EmailService {
       subject: `Booking Cancelled - ${data.bookingNumber}`,
       html,
       text: `Your booking ${data.bookingNumber} has been cancelled.`,
+    })
+  }
+
+  async sendSupportTicketCreated(data: SupportTicketCreatedEmailData): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb;">Support Ticket Created</h2>
+        <p>Dear ${data.userName},</p>
+        <p>Your support ticket has been created successfully. Our team will review it and get back to you shortly.</p>
+        
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Ticket Details</h3>
+          <p><strong>Ticket Number:</strong> ${data.ticketNumber}</p>
+          <p><strong>Subject:</strong> ${data.subject}</p>
+          <p><strong>Category:</strong> ${data.category}</p>
+          <p><strong>Priority:</strong> ${data.priority}</p>
+          ${data.bookingNumber ? `<p><strong>Booking:</strong> ${data.bookingNumber}</p>` : ''}
+        </div>
+        
+        <p><strong>Your Message:</strong></p>
+        <p style="background: #fff; padding: 10px; border-left: 3px solid #2563eb;">${data.message}</p>
+        
+        <p>You can track your ticket status in the support section of your dashboard.</p>
+        <p>Thank you for contacting Village Express Support!</p>
+      </div>
+    `
+
+    return this.sendEmail({
+      to: data.userEmail,
+      subject: `Support Ticket Created - ${data.ticketNumber}`,
+      html,
+      text: `Your support ticket ${data.ticketNumber} has been created. Subject: ${data.subject}`,
+    })
+  }
+
+  async sendSupportMessage(data: SupportMessageEmailData): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb;">New Message on Support Ticket</h2>
+        <p>Dear ${data.recipientName},</p>
+        <p>You have received a new message on your support ticket.</p>
+        
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Ticket Details</h3>
+          <p><strong>Ticket Number:</strong> ${data.ticketNumber}</p>
+          <p><strong>Subject:</strong> ${data.ticketSubject}</p>
+          <p><strong>From:</strong> ${data.senderName} ${data.isAdmin ? '(Support Team)' : ''}</p>
+        </div>
+        
+        <p><strong>Message:</strong></p>
+        <p style="background: #fff; padding: 10px; border-left: 3px solid #2563eb;">${data.message}</p>
+        
+        <p>Please log in to your dashboard to respond.</p>
+        <p>Thank you for using Village Express!</p>
+      </div>
+    `
+
+    return this.sendEmail({
+      to: data.recipientEmail,
+      subject: `New Message - ${data.ticketNumber}`,
+      html,
+      text: `New message on ticket ${data.ticketNumber} from ${data.senderName}`,
+    })
+  }
+
+  async sendSupportTicketStatus(data: SupportTicketStatusEmailData): Promise<boolean> {
+    const statusColors: Record<string, string> = {
+      OPEN: '#eab308',
+      IN_PROGRESS: '#3b82f6',
+      RESOLVED: '#22c55e',
+      CLOSED: '#6b7280',
+    }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: ${statusColors[data.status] || '#2563eb'};">Support Ticket Status Updated</h2>
+        <p>Dear ${data.userName},</p>
+        <p>Your support ticket status has been updated.</p>
+        
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Ticket Details</h3>
+          <p><strong>Ticket Number:</strong> ${data.ticketNumber}</p>
+          <p><strong>Subject:</strong> ${data.ticketSubject}</p>
+          <p><strong>New Status:</strong> <span style="color: ${statusColors[data.status] || '#2563eb'}; font-weight: bold;">${data.status}</span></p>
+          ${data.resolvedBy ? `<p><strong>Resolved By:</strong> ${data.resolvedBy}</p>` : ''}
+        </div>
+        
+        <p>You can view the full ticket details in the support section of your dashboard.</p>
+        <p>Thank you for contacting Village Express Support!</p>
+      </div>
+    `
+
+    return this.sendEmail({
+      to: data.userEmail,
+      subject: `Ticket Status Updated - ${data.ticketNumber}`,
+      html,
+      text: `Your ticket ${data.ticketNumber} status is now ${data.status}`,
     })
   }
 }

@@ -11,8 +11,8 @@ interface Blog {
   content: string
   coverImage: string | null
   author: string | null
-  publishedAt: string | null
-  createdAt: string
+  publishedAt: Date | null
+  createdAt: Date
   // SEO fields
   metaTitle: string | null
   metaDescription: string | null
@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: Props) {
       ogImage: true,
       canonicalUrl: true,
       coverImage: true,
+      publishedAt: true,
     },
   })
 
@@ -80,7 +81,21 @@ export async function generateMetadata({ params }: Props) {
 async function getBlog(slug: string): Promise<Blog | null> {
   const blog = await prisma.blog.findUnique({
     where: { slug, isPublished: true },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      content: true,
+      coverImage: true,
+      author: true,
+      publishedAt: true,
+      createdAt: true,
+      metaTitle: true,
+      metaDescription: true,
+      metaKeywords: true,
+      ogImage: true,
+      canonicalUrl: true,
       categories: {
         include: {
           category: true,

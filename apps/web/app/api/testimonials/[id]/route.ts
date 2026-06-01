@@ -12,13 +12,14 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAuth(req)
   if (error) return error
 
   try {
+    const { id } = await params
     const testimonial = await prisma.testimonial.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!testimonial) {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error, session } = await requirePermission(req, 'testimonial:update')
   if (error) return error
 
@@ -47,8 +48,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       )
     }
 
+    const { id } = await params
     const testimonial = await prisma.testimonial.update({
-      where: { id: params.id },
+      where: { id },
       data: parsed.data,
     })
 
@@ -68,20 +70,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error, session } = await requirePermission(req, 'testimonial:delete')
   if (error) return error
 
   try {
+    const { id } = await params
     await prisma.testimonial.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     await prisma.auditLog.create({
       data: {
         userId: session!.userId,
         action: 'DELETE',
-        resource: `testimonial:${params.id}`,
+        resource: `testimonial:${id}`,
         result: 'GRANTED',
       },
     })

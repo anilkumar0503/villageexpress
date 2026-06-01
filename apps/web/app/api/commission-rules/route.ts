@@ -66,12 +66,23 @@ export async function POST(req: NextRequest) {
 
     // If no routeSegmentId, create global rule
     if (!routeSegmentId) {
-      const rule = await prisma.globalCommissionRule.upsert({
+      // Find existing rule by vehicleType
+      const existingRule = await prisma.globalCommissionRule.findFirst({
         where: {
           vehicleType: vehicleType ?? null,
         },
-        create: { vehicleType: vehicleType ?? null, captainCommissionPct, pmCommissionPct, isActive },
-        update: { captainCommissionPct, pmCommissionPct, isActive },
+      })
+
+      if (existingRule) {
+        const rule = await prisma.globalCommissionRule.update({
+          where: { id: existingRule.id },
+          data: { captainCommissionPct, pmCommissionPct, isActive },
+        })
+        return NextResponse.json({ success: true, data: rule }, { status: 200 })
+      }
+
+      const rule = await prisma.globalCommissionRule.create({
+        data: { vehicleType: vehicleType ?? null, captainCommissionPct, pmCommissionPct, isActive },
       })
       return NextResponse.json({ success: true, data: rule }, { status: 201 })
     }
@@ -80,10 +91,10 @@ export async function POST(req: NextRequest) {
       where: {
         routeSegmentId_vehicleType: {
           routeSegmentId,
-          vehicleType: vehicleType ?? null,
+          vehicleType: vehicleType as any,
         },
       },
-      create: { routeSegmentId, vehicleType: vehicleType ?? null, captainCommissionPct, pmCommissionPct, isActive },
+      create: { routeSegmentId, vehicleType: vehicleType as any, captainCommissionPct, pmCommissionPct, isActive },
       update: { captainCommissionPct, pmCommissionPct, isActive },
       include: {
         routeSegment: {
