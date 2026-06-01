@@ -57,11 +57,11 @@ export async function getSessionUser(userId: string): Promise<SessionUser | null
 
   if (!user || !user.isActive) return null
 
-  const roles = user.userRoles.map((ur) => ur.role.name)
+  const roles = user.userRoles.map((ur: any) => ur.role.name)
   const permissions = [
     ...new Set(
-      user.userRoles.flatMap((ur) =>
-        ur.role.rolePermissions.map((rp) => rp.permission.name),
+      user.userRoles.flatMap((ur: any) =>
+        ur.role.rolePermissions.map((rp: any) => rp.permission.name),
       ),
     ),
   ]
@@ -96,8 +96,8 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 
   const permissions = [
     ...new Set(
-      (user?.userRoles ?? []).flatMap((ur) =>
-        ur.role.rolePermissions.map((rp) => rp.permission.name),
+      (user?.userRoles ?? []).flatMap((ur: any) =>
+        ur.role.rolePermissions.map((rp: any) => rp.permission.name),
       ),
     ),
   ]

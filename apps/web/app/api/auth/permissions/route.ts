@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     success: true,
     data: {
       permissions: Array.from(permissions),
-      roles: userRoles.map((ur) => ur.role.name),
+      roles: userRoles.map((ur: any) => ur.role.name),
     },
   })
 }

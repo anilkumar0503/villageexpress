@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  const roles = user?.userRoles.map((ur) => ur.role.name) ?? []
+  const roles = user?.userRoles.map((ur: any) => ur.role.name) ?? []
   const isPM = roles.includes('POINT_MANAGER')
 
   if (!isPM) {

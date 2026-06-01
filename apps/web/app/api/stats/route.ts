@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  const roles = user?.userRoles.map((ur) => ur.role.name) ?? []
+  const roles = user?.userRoles.map((ur: any) => ur.role.name) ?? []
   const isAdmin = roles.some((r) => ['SUPER_ADMIN', 'ADMIN'].includes(r))
   const isPM = roles.includes('POINT_MANAGER')
   const isCaptain = roles.includes('CAPTAIN')

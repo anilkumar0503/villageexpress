@@ -160,7 +160,7 @@ export default function ProfilePage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
   if (!profile) return null
 
-  const roles = profile.userRoles.map((ur) => ur.role.name)
+  const roles = profile.userRoles.map((ur: any) => ur.role.name)
   const isCaptain = roles.includes('CAPTAIN')
   const isPM = roles.includes('POINT_MANAGER')
 

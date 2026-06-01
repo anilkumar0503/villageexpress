@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     include: { role: { select: { name: true } } },
   })
 
-  const roleNames = userRoles.map((ur) => ur.role.name)
+  const roleNames = userRoles.map((ur: any) => ur.role.name)
   const isAdmin = roleNames.includes('ADMIN')
   const isPointManager = roleNames.includes('POINT_MANAGER')
   const isCustomer = roleNames.includes('CUSTOMER')

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
           displayId: user.displayId,
           name: user.name,
           email: user.email,
-          roles: user.userRoles.map((ur) => ur.role.name),
+          roles: user.userRoles.map((ur: any) => ur.role.name),
         },
       },
     })
