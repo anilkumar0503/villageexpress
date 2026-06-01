@@ -402,7 +402,7 @@ export default function PricingRulesPage() {
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No global rule set. Add one as fallback for all routes.</CardContent></Card>
           ) : (
             <div className="space-y-3">
-              {globalRules.map((rule) => <RuleCard key={rule.id} rule={rule} onDelete={openDeleteRuleDialog} onEdit={openEdit} />)}
+              {globalRules.map((rule: any) => <RuleCard key={rule.id} rule={rule} onDelete={openDeleteRuleDialog} onEdit={openEdit} />)}
             </div>
           )}
         </TabsContent>
@@ -499,7 +499,7 @@ export default function PricingRulesPage() {
                     <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No pricing rules for this route yet</CardContent></Card>
                   ) : (
                     <div className="space-y-2">
-                      {selectedRoute.pricingRules.map((rule) => (
+                      {selectedRoute.pricingRules.map((rule: any) => (
                         <RoutePricingRuleCard
                           key={rule.id}
                           rule={rule}

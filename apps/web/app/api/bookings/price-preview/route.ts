@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         }
 
         const matchingRule = route.pricingRules.find(
-          (rule) =>
+          (rule: any) =>
             rule.priority === deliveryPriority &&
             (vehicleType ? rule.vehicleType === vehicleType : rule.vehicleType === null),
         )

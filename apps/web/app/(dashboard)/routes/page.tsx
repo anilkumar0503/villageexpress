@@ -472,7 +472,7 @@ export default function RoutesPage() {
                       </div>
                       {route.pricingRules.length > 0 ? (
                         <div className="grid gap-2">
-                          {route.pricingRules.map((rule) => (
+                          {route.pricingRules.map((rule: any) => (
                             <div key={rule.id} className="flex items-center gap-2 text-xs bg-muted/40 rounded-lg p-2.5">
                               <div className="grid grid-cols-6 gap-3 flex-1">
                                 <div><p className="text-muted-foreground">Priority</p><p className="font-medium">{rule.priority}</p></div>
