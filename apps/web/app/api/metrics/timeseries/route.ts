@@ -132,24 +132,24 @@ function generateTimeSeriesData(
     }
 
     // Filter data for this period
-    const periodSegments = segments.filter(s => {
+    const periodSegments = segments.filter((s: any) => {
       // Use updatedAt for delivery date (when status changed to DELIVERED)
       const segDate = s.status === 'DELIVERED' ? new Date(s.updatedAt) : new Date(s.createdAt)
       return segDate >= periodStart && segDate <= periodEnd
     })
 
-    const periodCOD = codCollections.filter(c => {
+    const periodCOD = codCollections.filter((c: any) => {
       const codDate = new Date(c.collectionDate)
       return codDate >= periodStart && codDate <= periodEnd
     })
 
-    const periodCommission = commissionLedger.filter(c => {
+    const periodCommission = commissionLedger.filter((c: any) => {
       const commDate = new Date(c.createdAt)
       return commDate >= periodStart && commDate <= periodEnd
     })
 
     // Calculate metrics
-    const deliveries = periodSegments.filter(s => s.status === 'DELIVERED').length
+    const deliveries = periodSegments.filter((s: any) => s.status === 'DELIVERED').length
     const codCollected = periodCOD.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
     const commissionEarned = periodCommission.reduce((sum: number, c: any) => sum + Number(c.amount), 0)
 

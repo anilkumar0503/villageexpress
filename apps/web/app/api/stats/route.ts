@@ -71,13 +71,13 @@ export async function GET(req: NextRequest) {
     })
 
     // Calculate metrics
-    const pending = segments.filter(s => s.status === 'PENDING').length
-    const inTransit = segments.filter(s => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(s.status)).length
-    const deliveredToday = segments.filter(s => s.status === 'DELIVERED' && s.updatedAt >= today).length
+    const pending = segments.filter((s: any) => s.status === 'PENDING').length
+    const inTransit = segments.filter((s: any) => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(s.status)).length
+    const deliveredToday = segments.filter((s: any) => s.status === 'DELIVERED' && s.updatedAt >= today).length
 
     // COD metrics
     const codCollected = segments
-      .filter(s => s.codCollectedAt)
+      .filter((s: any) => s.codCollectedAt)
       .reduce((sum: number, s: any) => sum + Number(s.booking.calculatedPrice), 0)
 
     // Fetch pending COD from COD collections
