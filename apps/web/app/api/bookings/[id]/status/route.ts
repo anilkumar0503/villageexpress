@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma, type BookingStatus } from '@ve/db'
+import { prisma } from '@ve/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { canTransition } from '@/lib/booking/state-machine'
 import { sendNotificationToUser } from '@/lib/firebase-admin'
 import { sendBookingPickedUpEmail, sendBookingDeliveredEmail, sendBookingCancelledEmail, sendFailedDeliveryEmail } from '@/lib/email'
+
+type BookingStatus = 'PENDING' | 'PAYMENT_FAILED' | 'CONFIRMED' | 'RECEIVED_AT_POINT' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURN_INITIATED' | 'RETURNED'
 
 const STATUS_MESSAGES: Partial<Record<string, string>> = {
   CONFIRMED: 'Your booking has been confirmed!',
