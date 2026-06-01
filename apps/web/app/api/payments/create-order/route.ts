@@ -6,11 +6,6 @@ import { requireAuth } from '@/lib/auth/permissions'
 
 const schema = z.object({ bookingId: z.string().uuid() })
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID ?? '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET ?? '',
-})
-
 export async function POST(req: NextRequest) {
   const { error, session } = await requireAuth(req)
   if (error) return error
@@ -20,6 +15,19 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid input' }, { status: 400 })
   }
+
+  // Initialize Razorpay only if credentials are available
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+
+  if (!keyId || !keySecret) {
+    return NextResponse.json({ success: false, error: 'Razorpay credentials not configured' }, { status: 500 })
+  }
+
+  const razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  })
 
   const booking = await prisma.booking.findUnique({
     where: { id: parsed.data.bookingId },

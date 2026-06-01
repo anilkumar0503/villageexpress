@@ -28,9 +28,18 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   try {
     const Razorpay = (await import('razorpay')).default
+    
+    // Initialize Razorpay only if credentials are available
+    const keyId = process.env.RAZORPAY_KEY_ID
+    const keySecret = process.env.RAZORPAY_KEY_SECRET
+
+    if (!keyId || !keySecret) {
+      return NextResponse.json({ success: false, error: 'Razorpay credentials not configured' }, { status: 500 })
+    }
+
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID ?? '',
-      key_secret: process.env.RAZORPAY_KEY_SECRET ?? '',
+      key_id: keyId,
+      key_secret: keySecret,
     })
 
     const refund = await razorpay.payments.refund(booking.paymentGatewayRef, {
