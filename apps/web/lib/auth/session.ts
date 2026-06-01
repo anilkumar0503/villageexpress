@@ -58,7 +58,7 @@ export async function getSessionUser(userId: string): Promise<SessionUser | null
   if (!user || !user.isActive) return null
 
   const roles = user.userRoles.map((ur: any) => ur.role.name)
-  const permissions = [
+  const permissions: string[] = [
     ...new Set(
       user.userRoles.flatMap((ur: any) =>
         ur.role.rolePermissions.map((rp: any) => rp.permission.name),
