@@ -61,8 +61,8 @@ export async function PUT(req: NextRequest) {
 
     if (totalActive > 0) {
       const bookingNumbers = [
-        ...activeSegments.map(s => s.booking.bookingNumber),
-        ...activeDirectBookings.map(b => b.bookingNumber),
+        ...activeSegments.map((s: any) => s.booking.bookingNumber),
+        ...activeDirectBookings.map((b: any) => b.bookingNumber),
       ].join(', ')
 
       return NextResponse.json(
@@ -70,8 +70,8 @@ export async function PUT(req: NextRequest) {
           success: false,
           error: `Cannot change availability while assigned to ${totalActive} active booking(s): ${bookingNumbers}`,
           bookings: {
-            segments: activeSegments.map(s => ({ id: s.booking.id, bookingNumber: s.booking.bookingNumber })),
-            direct: activeDirectBookings.map(b => ({ id: b.id, bookingNumber: b.bookingNumber })),
+            segments: activeSegments.map((s: any) => ({ id: s.booking.id, bookingNumber: s.booking.bookingNumber })),
+            direct: activeDirectBookings.map((b: any) => ({ id: b.id, bookingNumber: b.bookingNumber })),
           },
         },
         { status: 409 },

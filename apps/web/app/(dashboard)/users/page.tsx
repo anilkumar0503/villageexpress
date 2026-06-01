@@ -135,7 +135,7 @@ export default function UsersPage() {
     // Derive districts from point assignments (captain can have points from multiple districts)
     const pointAssignments = user.captainProfile?.pointAssignments || []
     const districtsFromPoints = new Set<string>()
-    pointAssignments.forEach((pa) => {
+    pointAssignments.forEach((pa: any) => {
       if (pa.location?.district) {
         districtsFromPoints.add(pa.location.district)
       }
@@ -218,7 +218,7 @@ export default function UsersPage() {
     const pointAssignments = user.captainProfile?.pointAssignments || []
     const existingPointIds = pointAssignments.map((pa) => pa.locationId)
     const districtsFromPoints = new Set<string>()
-    pointAssignments.forEach((pa) => {
+    pointAssignments.forEach((pa: any) => {
       if (pa.location?.district) {
         districtsFromPoints.add(pa.location.district)
       }

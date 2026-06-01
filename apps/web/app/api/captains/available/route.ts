@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   })
 
   console.log('[CAPTAINS/AVAILABLE] All captains in DB:', allCaptains.length)
-  allCaptains.forEach(c => {
+  allCaptains.forEach((c: any) => {
     console.log(`- ${c.displayId} ${c.name} (active: ${c.isActive}, approved: ${c.approvalStatus}, district: ${c.captainProfile?.districtId}, availability: ${c.captainProfile?.availabilityStatus})`)
   })
 
@@ -115,8 +115,8 @@ export async function GET(req: NextRequest) {
   })
 
   console.log('[CAPTAINS/AVAILABLE] Found captains:', captains.length)
-  captains.forEach(c => {
-    const districts = [...new Set(c.captainProfile?.pointAssignments?.map(pa => pa.location.district) || [])]
+  captains.forEach((c: any) => {
+    const districts = [...new Set(c.captainProfile?.pointAssignments?.map((pa: any) => pa.location.district) || [])]
     console.log(`- ${c.displayId} ${c.name} (primary district: ${c.captainProfile?.districtId}, operating districts: [${districts.join(', ')}], availability: ${c.captainProfile?.availabilityStatus})`)
   })
 

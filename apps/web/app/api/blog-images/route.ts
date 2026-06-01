@@ -69,8 +69,8 @@ export async function GET(req: NextRequest) {
     const files = await fs.readdir(uploadDir)
     
     const images = files
-      .filter(f => /\.(jpg|jpeg|png|webp|gif)$/i.test(f))
-      .map(f => ({
+      .filter((f: string) => /\.(jpg|jpeg|png|webp|gif)$/i.test(f))
+      .map((f: string) => ({
         url: `/uploads/blog/${f}`,
         filename: f,
         createdAt: f.split('-')[0] || '0'
