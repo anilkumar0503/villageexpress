@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         )
 
         if (matchingRule) {
-          const totalDistance = route.segments.reduce((sum, seg) => sum + Number(seg.distanceKm), 0)
+          const totalDistance = route.segments.reduce((sum: number, seg: any) => sum + Number(seg.distanceKm), 0)
           const weightSurcharge = parcelWeight > defaultWeight ? Number((matchingRule as any).weightSurcharge ?? 0) : 0
           
           // Use progressive distance pricing tiers if available, otherwise use rule's pricePerKm
