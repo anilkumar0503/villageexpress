@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   // Get total pending amount
   const totalPending = pendingCollections.reduce(
-    (sum, col) => sum + Number(col.amount),
+    (sum: number, col: any) => sum + Number(col.amount),
     0
   )
 

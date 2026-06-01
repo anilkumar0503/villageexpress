@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     })
 
     const totalPendingCommission = pendingCommissions.reduce(
-      (sum, c) => sum + Number(c.amount),
+      (sum: number, c: any) => sum + Number(c.amount),
       0
     )
 

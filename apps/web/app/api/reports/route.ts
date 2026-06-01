@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     ])
 
     const statusMap = segmentStatusBreakdown.reduce(
-      (acc, { status, _count }) => ({ ...acc, [status]: _count }),
+      (acc: Record<string, number>, { status, _count }: { status: string; _count: number }) => ({ ...acc, [status]: _count }),
       {} as Record<string, number>
     )
 
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Group by date
-    const dailyTrendMap = dailyTrends.reduce((acc, item) => {
+    const dailyTrendMap = dailyTrends.reduce((acc: Record<string, number>, item: any) => {
       const date = new Date(item.createdAt).toISOString().split('T')[0]
       acc[date] = (acc[date] || 0) + item._count
       return acc
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       .map(([date, count]) => ({ date, count }))
 
     const codCollected = codCollectedSegments.reduce(
-      (sum, seg) => sum + Number(seg.booking.calculatedPrice),
+      (sum: number, seg: any) => sum + Number(seg.booking.calculatedPrice),
       0
     )
 
