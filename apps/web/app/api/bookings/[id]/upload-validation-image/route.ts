@@ -4,7 +4,7 @@ import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
 
 const schema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z.string().min(1),
   imageType: z.enum(['PICKUP', 'DROP']),
 })
 

@@ -170,7 +170,7 @@ export default function ApprovalsPage() {
                   {isPM && user.pointManagerProfile?.shopPhoto && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground">Shop Photo</p>
-                      <a href={user.pointManagerProfile.shopPhoto} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                      <a href={`/api/upload/download?fileKey=${encodeURIComponent(user.pointManagerProfile.shopPhoto!)}&bucket=public`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
                         <ImageIcon className="h-4 w-4" />
                         View Photo
                       </a>
@@ -201,7 +201,7 @@ export default function ApprovalsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             {user.captainProfile?.aadhaarPhoto && (
-                              <a href={user.captainProfile.aadhaarPhoto} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                              <a href={`/api/upload/download?fileKey=${encodeURIComponent(user.captainProfile.aadhaarPhoto)}&bucket=private`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
                                 View
                               </a>
                             )}
@@ -248,7 +248,7 @@ export default function ApprovalsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             {user.captainProfile?.licensePhoto && (
-                              <a href={user.captainProfile.licensePhoto} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                              <a href={`/api/upload/download?fileKey=${encodeURIComponent(user.captainProfile.licensePhoto)}&bucket=private`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
                                 View
                               </a>
                             )}

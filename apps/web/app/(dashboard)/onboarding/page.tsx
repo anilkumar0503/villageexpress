@@ -217,7 +217,7 @@ export default function OnboardingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Vehicle Number *</Label>
-                  <Input placeholder="e.g. AP16AB1234" value={form.vehicleNumber} onChange={(e) => set('vehicleNumber', e.target.value.toUpperCase())} />
+                  <Input placeholder="e.g. AP16AB1234" maxLength={10} value={form.vehicleNumber} onChange={(e) => set('vehicleNumber', e.target.value.toUpperCase())} />
                 </div>
               </div>
             </CardContent>

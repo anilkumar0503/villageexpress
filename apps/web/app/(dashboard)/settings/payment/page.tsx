@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Save, Upload, QrCode, Banknote, Smartphone } from 'lucide-react'
+import { Loader2, Save, QrCode, Banknote, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
+import { FileUpload } from '@/components/file-upload'
 
 type PaymentSettings = {
   id: string
@@ -196,8 +197,15 @@ export default function PaymentSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <FileUpload
+            folder="qr-code"
+            accept="image/jpeg,image/png,image/webp"
+            label="Upload QR Code Image"
+            currentUrl={formData.qrCodeUrl || undefined}
+            onUploadComplete={(url) => setFormData({ ...formData, qrCodeUrl: url })}
+          />
           <div className="space-y-2">
-            <Label htmlFor="qrCodeUrl">QR Code URL</Label>
+            <Label htmlFor="qrCodeUrl">Or enter QR Code URL manually</Label>
             <Input
               id="qrCodeUrl"
               data-testid="qr-code-url-input"

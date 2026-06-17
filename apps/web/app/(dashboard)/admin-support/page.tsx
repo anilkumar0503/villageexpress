@@ -545,7 +545,7 @@ export default function AdminSupportPage() {
                         {msg.attachments.map((att) => (
                           <a
                             key={att.id}
-                            href={att.fileUrl}
+                            href={`/api/upload/download?fileKey=${encodeURIComponent(att.fileUrl)}&bucket=private`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`flex items-center gap-2 text-xs p-2 rounded ${

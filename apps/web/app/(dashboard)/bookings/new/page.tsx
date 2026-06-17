@@ -822,7 +822,7 @@ export default function NewBookingPage() {
             </div>
             <div className="space-y-1.5 col-span-2">
               <Label>Receiver Phone</Label>
-              <Input type="tel" placeholder="Phone number of receiver" value={receiverPhone} onChange={(e) => setReceiverPhone(e.target.value)} />
+              <Input type="tel" maxLength={10} placeholder="Phone number of receiver" value={receiverPhone} onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, ''))} />
             </div>
             <div className="space-y-1.5 col-span-2">
               <div className="flex items-center justify-between">

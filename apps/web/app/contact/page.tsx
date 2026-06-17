@@ -117,9 +117,10 @@ export default function ContactPage() {
                 <label className="block text-sm font-medium mb-2">Phone</label>
                 <input
                   type="tel"
+                  maxLength={10}
                   className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
                 />
               </div>
               <div>

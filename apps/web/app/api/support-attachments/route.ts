@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { existsSync } from 'fs'
-import path from 'path'
 import { requireAuth } from '@/lib/auth/permissions'
+import { uploadFile, type AllowedMimeType } from '@/lib/storage'
+
+const ALLOWED_TYPES: AllowedMimeType[] = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
+const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
   const { error } = await requireAuth(req)
@@ -21,38 +22,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Message ID required' }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ success: false, error: 'Invalid file type. Only images and PDF are allowed.' }, { status: 400 })
+    if (!ALLOWED_TYPES.includes(file.type as AllowedMimeType)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid file type. Only images and PDF are allowed.' },
+        { status: 400 },
+      )
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      return NextResponse.json({ success: false, error: 'File too large. Maximum size is 10MB.' }, { status: 400 })
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { success: false, error: 'File too large. Maximum size is 10MB.' },
+        { status: 400 },
+      )
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = Buffer.from(await file.arrayBuffer())
 
-    // Generate unique filename
-    const ext = file.type.split('/')[1]
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`
+    // Support attachments go to the private bucket (sensitive content)
+    const { publicUrl } = await uploadFile('support', file.type as AllowedMimeType, buffer, 'private')
 
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'support')
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
-    // Save file
-    const filePath = path.join(uploadDir, filename)
-    await writeFile(filePath, buffer)
-
-    const publicUrl = `/uploads/support/${filename}`
-
-    // Create attachment record
     const { prisma } = await import('@ve/db')
     const attachment = await prisma.supportAttachment.create({
       data: {

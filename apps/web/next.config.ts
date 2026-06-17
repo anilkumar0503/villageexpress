@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_RAZORPAY_ENABLED: process.env.NEXT_PUBLIC_RAZORPAY_ENABLED,
   },
+  images: {
+    remotePatterns: [
+      {
+        // Linode Object Storage CDN: https://<bucket>.us-east-1.linodeobjects.com
+        protocol: "https",
+        hostname: "**.linodeobjects.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

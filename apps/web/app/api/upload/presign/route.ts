@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth/permissions'
-import { getPresignedUploadUrl, isStorageConfigured, type AllowedMimeType, type UploadBucket } from '@/lib/storage'
+import { getPresignedUploadUrl, type AllowedMimeType, type UploadBucket } from '@/lib/storage'
 
 const ALLOWED_FOLDERS: Record<string, { bucket: UploadBucket; mimeTypes: AllowedMimeType[]; public: boolean }> = {
-  'shop-photos': { bucket: 'public', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
-  'profile-photos': { bucket: 'public', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
-  'aadhaar': { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },
-  'driving-license': { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },
-  'vehicle-rc': { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: false },
-  'kyc-documents': { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
-  'validation-images': { bucket: 'public', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'shop-photos':        { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'profile-photos':     { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'aadhaar':            { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },
+  'driving-license':    { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },
+  'vehicle-rc':         { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: false },
+  'kyc-documents':      { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'validation-images':  { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'delivery-proof':     { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'qr-code':            { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
 }
 
 const schema = z.object({
   folder: z.string(),
-  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
 })
 
 export async function POST(req: NextRequest) {
@@ -42,11 +44,8 @@ export async function POST(req: NextRequest) {
     if (error) return error
   }
 
-  if (!isStorageConfigured()) {
-    return NextResponse.json({ success: false, error: 'Object storage not configured on this server' }, { status: 503 })
-  }
-
   try {
+    // getPresignedUploadUrl uses Linode when configured, local filesystem otherwise
     const result = await getPresignedUploadUrl(folder, mimeType as AllowedMimeType, folderConfig.bucket)
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
