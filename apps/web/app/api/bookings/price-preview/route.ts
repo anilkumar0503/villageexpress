@@ -70,7 +70,82 @@ export async function POST(req: NextRequest) {
 
     const { pickupLocationId, dropLocationId, parcelWeight, deliveryPriority, routeId, vehicleType } = parsed.data
 
-    // If a route is selected, use its RoutePricingRule (same logic as booking creation)
+    // Helper: try to price using a route's pricingRules
+    async function tryRoutePrice(route: any): Promise<NextResponse | null> {
+      if (!route || route.pricingRules.length === 0) return null
+
+      let vehicleConfig = null
+      if (vehicleType) {
+        vehicleConfig = await prisma.vehicleConfiguration.findFirst({
+          where: { vehicleType: vehicleType as any, isActive: true },
+          include: { distanceTiers: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+        })
+      }
+
+      const defaultWeight = Number(vehicleConfig?.defaultWeight ?? 5)
+      const maxWeight = Number(vehicleConfig?.maxWeight ?? 50)
+
+      if (parcelWeight > maxWeight) {
+        return NextResponse.json({
+          success: false,
+          error: `Parcel weight ${parcelWeight}kg exceeds maximum allowed weight of ${maxWeight}kg for ${vehicleType || 'selected vehicle'}`,
+        }, { status: 400 })
+      }
+
+      // Exact vehicleType + priority match first, then null vehicleType fallback
+      const matchingRule: any =
+        route.pricingRules.find(
+          (r: any) => r.priority === deliveryPriority && r.vehicleType === vehicleType,
+        ) ??
+        route.pricingRules.find(
+          (r: any) => r.priority === deliveryPriority && r.vehicleType === null,
+        )
+
+      console.log('[PRICE-PREVIEW] pricingRules:', JSON.stringify(route.pricingRules.map((r: any) => ({ priority: r.priority, vehicleType: r.vehicleType, isActive: r.isActive }))))
+      console.log('[PRICE-PREVIEW] looking for priority:', deliveryPriority, 'vehicleType:', vehicleType)
+      console.log('[PRICE-PREVIEW] matchingRule:', matchingRule ? 'found' : 'not found')
+
+      if (!matchingRule) return null
+
+      const totalDistance = route.segments.reduce((sum: number, seg: any) => sum + Number(seg.distanceKm), 0)
+      const weightSurcharge = parcelWeight > defaultWeight ? Number(matchingRule.weightSurcharge ?? 0) : 0
+
+      let distanceCost = 0
+      if (vehicleConfig && vehicleConfig.distanceTiers.length > 0) {
+        const tiers = vehicleConfig.distanceTiers.map((tier: any) => ({
+          minDistance: Number(tier.minDistance),
+          maxDistance: Number(tier.maxDistance),
+          pricePerKm: Number(tier.pricePerKm),
+        }))
+        distanceCost = calculateProgressiveDistanceCost(totalDistance, tiers, Number(matchingRule.pricePerKm))
+      } else {
+        distanceCost = totalDistance * Number(matchingRule.pricePerKm)
+      }
+
+      const multiplier = deliveryPriority === 'EXPRESS' ? 1.5 : deliveryPriority === 'OVERNIGHT' ? 2.0 : 1.0
+      const priorityCharge = Number(matchingRule.basePrice) * (multiplier - 1)
+      const finalPrice = Number(matchingRule.basePrice) + distanceCost + priorityCharge + weightSurcharge
+      const estimatedTimeHours = deliveryPriority === 'EXPRESS' ? 2 : deliveryPriority === 'OVERNIGHT' ? 24 : 4
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          finalPrice,
+          estimatedDeliveryDays: route.estimatedDays,
+          estimatedDeliveryHours: estimatedTimeHours,
+          source: 'route',
+          breakdown: {
+            basePrice: Number(matchingRule.basePrice),
+            distanceCost: Math.round(distanceCost * 100) / 100,
+            priorityCharge: Math.round(priorityCharge * 100) / 100,
+            weightSurcharge: Math.round(weightSurcharge * 100) / 100,
+            totalDistance,
+          },
+        },
+      })
+    }
+
+    // If a route is selected, try its RoutePricingRules first
     if (routeId) {
       const route = await prisma.route.findUnique({
         where: { id: routeId, isActive: true },
@@ -80,84 +155,33 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      if (route && route.pricingRules.length > 0) {
-        // Fetch vehicle configuration to get weight limits and distance pricing tiers
-        let vehicleConfig = null
-        if (vehicleType) {
-          vehicleConfig = await prisma.vehicleConfiguration.findFirst({
-            where: { vehicleType: vehicleType as any, isActive: true },
-            include: {
-              distanceTiers: {
-                where: { isActive: true },
-                orderBy: { sortOrder: 'asc' },
-              },
-            },
-          })
-        }
+      const routeRes = await tryRoutePrice(route)
+      if (routeRes) return routeRes
+      // No matching rule on selected route → fall through to auto-route lookup then global
+    }
 
-        const defaultWeight = Number(vehicleConfig?.defaultWeight ?? 5)
-        const maxWeight = Number(vehicleConfig?.maxWeight ?? 50)
+    // Always try auto-find (covers: no routeId supplied, OR selected route had no matching rule)
+    {
+      const autoRoute = await prisma.route.findFirst({
+        where: {
+          sourceLocationId: pickupLocationId,
+          destinationLocationId: dropLocationId,
+          isActive: true,
+        },
+        include: {
+          segments: true,
+          pricingRules: { where: { isActive: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
 
-        // Validate parcel weight against vehicle max weight
-        if (parcelWeight > maxWeight) {
-          return NextResponse.json({
-            success: false,
-            error: `Parcel weight ${parcelWeight}kg exceeds maximum allowed weight of ${maxWeight}kg for ${vehicleType || 'selected vehicle'}`,
-          }, { status: 400 })
-        }
-
-        const matchingRule = route.pricingRules.find(
-          (rule: any) =>
-            rule.priority === deliveryPriority &&
-            (vehicleType ? rule.vehicleType === vehicleType : rule.vehicleType === null),
-        )
-
-        if (matchingRule) {
-          const totalDistance = route.segments.reduce((sum: number, seg: any) => sum + Number(seg.distanceKm), 0)
-          const weightSurcharge = parcelWeight > defaultWeight ? Number((matchingRule as any).weightSurcharge ?? 0) : 0
-          
-          // Use progressive distance pricing tiers if available, otherwise use rule's pricePerKm
-          let distanceCost = 0
-          if (vehicleConfig && vehicleConfig.distanceTiers.length > 0) {
-            const tiers = vehicleConfig.distanceTiers.map((tier: any) => ({
-              minDistance: Number(tier.minDistance),
-              maxDistance: Number(tier.maxDistance),
-              pricePerKm: Number(tier.pricePerKm),
-            }))
-            distanceCost = calculateProgressiveDistanceCost(totalDistance, tiers, Number(matchingRule.pricePerKm))
-          } else {
-            distanceCost = totalDistance * Number(matchingRule.pricePerKm)
-          }
-          
-          const multiplier = deliveryPriority === 'EXPRESS' ? 1.5 : deliveryPriority === 'OVERNIGHT' ? 2.0 : 1.0
-          const priorityCharge = Number(matchingRule.basePrice) * (multiplier - 1)
-          const finalPrice = Number(matchingRule.basePrice) + distanceCost + priorityCharge + weightSurcharge
-          const estimatedTimeHours = deliveryPriority === 'EXPRESS' ? 2 : deliveryPriority === 'OVERNIGHT' ? 24 : 4
-
-          return NextResponse.json({
-            success: true,
-            data: {
-              finalPrice,
-              estimatedDeliveryDays: route.estimatedDays,
-              estimatedDeliveryHours: estimatedTimeHours,
-              source: 'route',
-              breakdown: {
-                basePrice: Number(matchingRule.basePrice),
-                distanceCost: Math.round(distanceCost * 100) / 100,
-                priorityCharge: Math.round(priorityCharge * 100) / 100,
-                weightSurcharge: Math.round(weightSurcharge * 100) / 100,
-                totalDistance,
-              },
-            },
-          })
-        }
-
-        // Route has rules but none match — fall back to global pricing
-        // Don't return error, let it fall through to resolvePrice below
+      if (autoRoute) {
+        const routeRes = await tryRoutePrice(autoRoute)
+        if (routeRes) return routeRes
       }
     }
 
-    // Fallback: global/location-based pricing (no route selected or route has no rules)
+    // Fallback: global/location-based pricing (no route selected, no route found, or no matching rule)
     const result = await resolvePrice({ pickupLocationId, dropLocationId, parcelWeight, deliveryPriority, vehicleType })
     const estimatedTimeHours = deliveryPriority === 'EXPRESS' ? 2 : deliveryPriority === 'OVERNIGHT' ? 24 : 4
     return NextResponse.json({

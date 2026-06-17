@@ -62,6 +62,7 @@ export default function NewBookingPage() {
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [priceRuleHint, setPriceRuleHint] = useState<RuleHint>(null)
   const [priceLoading, setPriceLoading] = useState(false)
+  const [priceError, setPriceError] = useState<string | null>(null)
   const [routeError, setRouteError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [favoriteLocations, setFavoriteLocations] = useState<any[]>([])
@@ -81,7 +82,7 @@ export default function NewBookingPage() {
   const [showRechargeModal, setShowRechargeModal] = useState(false)
   const [rechargeAmount, setRechargeAmount] = useState('500')
   const [recharging, setRecharging] = useState(false)
-  const hasRoutes = availableRoutes.length > 0
+  const hasRoutes = availableRoutes.length > 1
   const totalSteps = hasRoutes ? 4 : 3
 
   useEffect(() => {
@@ -259,7 +260,7 @@ export default function NewBookingPage() {
   }, [pickupLocationId, dropLocationId])
 
   useEffect(() => {
-    if (pickupLocationId && dropLocationId && vehicleType && vehicleType !== 'ANY' && vehicleConfigs.length > 0) {
+    if (pickupLocationId && dropLocationId && vehicleType && vehicleType !== 'ANY') {
       setPriceLoading(true)
       const parcelWeight = getVehicleWeight(vehicleType)
       fetch('/api/bookings/price-preview', {
@@ -278,27 +279,31 @@ export default function NewBookingPage() {
           if (d.success) { 
             setPricePreview(d.data.finalPrice); 
             setPriceBreakdown(d.data.breakdown || null);
-            setPriceRuleHint(null) 
+            setPriceRuleHint(null);
+            setPriceError(null)
           }
           else if (d.error === 'no_rule_match') { 
             setPricePreview(null); 
             setPriceBreakdown(null);
-            setPriceRuleHint({ availableRules: d.availableRules, selectedPriority: d.selectedPriority, selectedWeight: d.selectedWeight }) 
+            setPriceRuleHint({ availableRules: d.availableRules, selectedPriority: d.selectedPriority, selectedWeight: d.selectedWeight });
+            setPriceError(null)
           }
           else { 
             setPricePreview(null); 
             setPriceBreakdown(null);
-            setPriceRuleHint(null) 
+            setPriceRuleHint(null);
+            setPriceError(d.error || 'Price could not be calculated')
           }
         })
-        .catch(() => { setPricePreview(null); setPriceBreakdown(null); setPriceRuleHint(null) })
+        .catch(() => { setPricePreview(null); setPriceBreakdown(null); setPriceRuleHint(null); setPriceError('Network error') })
         .finally(() => setPriceLoading(false))
     } else {
       setPricePreview(null)
       setPriceBreakdown(null)
       setPriceRuleHint(null)
+      setPriceError(null)
     }
-  }, [pickupLocationId, dropLocationId, deliveryPriority, vehicleType, selectedRouteId, vehicleConfigs, accessToken])
+  }, [pickupLocationId, dropLocationId, deliveryPriority, vehicleType, selectedRouteId, accessToken])
 
   async function validateCoupon() {
     if (!couponCode || !pricePreview) return
@@ -525,9 +530,8 @@ export default function NewBookingPage() {
   ]
 
   const canProceedToNext = () => {
-    const parcelDetailsStep = hasRoutes ? 3 : 2
     switch (currentStep) {
-      case 1: return !!pickupLocationId && !!dropLocationId
+      case 1: return !!pickupLocationId && !!dropLocationId && !routeError
       case 2: return hasRoutes ? true : !!vehicleType && vehicleType !== 'ANY'
       case 3: return hasRoutes ? !!vehicleType && vehicleType !== 'ANY' : true
       case 4: return true
@@ -663,6 +667,12 @@ export default function NewBookingPage() {
             </CardContent>
           </Card>
 
+          {routeError && (
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-destructive/40 bg-destructive/5 text-sm">
+              <span className="text-destructive font-medium">⚠ {routeError}</span>
+            </div>
+          )}
+
           <Card>
             <CardHeader className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base"><MapPin className="h-4 w-4" /> Drop Location</CardTitle>
@@ -765,15 +775,6 @@ export default function NewBookingPage() {
         </Card>
       )}
 
-      {/* Route Error Message */}
-      {routeError && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="py-4">
-            <p className="text-sm text-destructive">{routeError}</p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Step 3 (or 2 if no routes): Parcel Details */}
       {currentStep === (hasRoutes ? 3 : 2) && (
         <Card>
@@ -816,6 +817,48 @@ export default function NewBookingPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Price preview inline on Parcel Details step */}
+            {vehicleType && vehicleType !== 'ANY' && (
+              <div className="col-span-2">
+                {priceLoading && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Calculating price...
+                  </div>
+                )}
+                {!priceLoading && pricePreview !== null && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <IndianRupee className="h-4 w-4 text-primary" />
+                      Estimated Price
+                      <Badge variant="outline" className="text-xs">{deliveryPriority}</Badge>
+                    </div>
+                    <span className="text-xl font-bold text-primary">₹{Number(pricePreview).toFixed(2)}</span>
+                  </div>
+                )}
+                {!priceLoading && priceRuleHint && (
+                  <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/5 space-y-2">
+                    <p className="text-sm font-semibold text-destructive">
+                      {priceRuleHint.selectedPriority} delivery is not available for {priceRuleHint.selectedWeight}kg on this route.
+                    </p>
+                    <p className="text-xs text-muted-foreground">Please choose a different vehicle or delivery priority.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {priceRuleHint.availableRules.map((r, i) => (
+                        <span key={i} className="text-xs bg-background border rounded px-2 py-0.5">
+                          <span className="font-medium">{r.priority}</span> · {r.minWeight}–{r.maxWeight}kg
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!priceLoading && !pricePreview && !priceRuleHint && priceError && (
+                  <div className="p-3 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-800">
+                    ⚠ {priceError}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5 col-span-2">
               <Label>Receiver Name</Label>
               <Input placeholder="Name of person receiving the parcel" value={receiverName} onChange={(e) => setReceiverName(e.target.value)} />
@@ -1059,31 +1102,6 @@ export default function NewBookingPage() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {priceRuleHint && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="py-4 px-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <div>
-                <p className="text-sm font-semibold text-destructive">
-                  {priceRuleHint.selectedPriority} delivery is not available for {priceRuleHint.selectedWeight}kg on this route.
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Please choose a different weight or delivery priority.</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Available options on this route:</p>
-              <div className="flex flex-wrap gap-2">
-                {priceRuleHint.availableRules.map((r, i) => (
-                  <span key={i} className="text-xs bg-background border rounded px-2 py-1">
-                    <span className="font-medium">{r.priority}</span> · {r.minWeight}–{r.maxWeight}kg
-                  </span>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}

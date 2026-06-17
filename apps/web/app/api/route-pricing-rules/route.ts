@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: rule }, { status: 201 })
   } catch (err) {
     console.error('[ROUTE-PRICING-RULES/POST]', err)
+    if ((err as any)?.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'A pricing rule with the same route, priority, and vehicle type already exists.' },
+        { status: 409 },
+      )
+    }
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

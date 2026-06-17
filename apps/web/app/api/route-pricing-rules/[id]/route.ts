@@ -29,6 +29,13 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ success: true, data: rule })
   } catch (err: unknown) {
     console.error('[ROUTE-PRICING-RULES/PUT]', err)
+    const code = (err as any)?.code
+    if (code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'A pricing rule with the same route, priority, and vehicle type already exists.' },
+        { status: 409 },
+      )
+    }
     const isNotFound = err instanceof Error && err.message.includes('Record to update not found')
     return NextResponse.json(
       { success: false, error: isNotFound ? 'Rule not found' : 'Failed to update rule' },
