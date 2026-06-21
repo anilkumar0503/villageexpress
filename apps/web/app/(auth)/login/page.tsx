@@ -74,9 +74,9 @@ export default function LoginPage() {
         sessionStorage.removeItem('dropLocationId')
         sessionStorage.removeItem('pickupLocation')
         sessionStorage.removeItem('dropLocation')
-        router.push(`/bookings/new?pickupLocationId=${pickupLocationId}&dropLocationId=${dropLocationId}`)
+        window.location.href = `/bookings/new?pickupLocationId=${pickupLocationId}&dropLocationId=${dropLocationId}`
       } else {
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       }
     } catch {
       setError('Verification failed. Try again.')
@@ -110,9 +110,9 @@ export default function LoginPage() {
         sessionStorage.removeItem('dropLocationId')
         sessionStorage.removeItem('pickupLocation')
         sessionStorage.removeItem('dropLocation')
-        router.push(`/bookings/new?pickupLocationId=${pickupLocationId}&dropLocationId=${dropLocationId}`)
+        window.location.href = `/bookings/new?pickupLocationId=${pickupLocationId}&dropLocationId=${dropLocationId}`
       } else {
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       }
     } catch {
       setError('Login failed. Try again.')

@@ -175,7 +175,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  if (!accessToken || !user) return null
+  if (!accessToken || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <img src="/logo.jpeg" alt="Village Express" className="w-8 h-8 rounded-lg" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const visibleNavSections = NAV_SECTIONS.map((section) => ({
     ...section,
