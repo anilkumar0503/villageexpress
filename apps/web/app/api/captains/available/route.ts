@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     targetDistrictId = pmProfile?.shopLocation?.district ?? null
   }
 
-  console.log('[CAPTAINS/AVAILABLE] PM district:', targetDistrictId)
+  //console.log('[CAPTAINS/AVAILABLE] PM district:', targetDistrictId)
 
   const where: any = {
     isActive: true,
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  console.log('[CAPTAINS/AVAILABLE] Query where:', JSON.stringify(where, null, 2))
+  //console.log('[CAPTAINS/AVAILABLE] Query where:', JSON.stringify(where, null, 2))
 
   // Also fetch all captains without filters for debugging
   const allCaptains = await prisma.user.findMany({
@@ -82,9 +82,9 @@ export async function GET(req: NextRequest) {
     orderBy: { name: 'asc' },
   })
 
-  console.log('[CAPTAINS/AVAILABLE] All captains in DB:', allCaptains.length)
+  //console.log('[CAPTAINS/AVAILABLE] All captains in DB:', allCaptains.length)
   allCaptains.forEach((c: any) => {
-    console.log(`- ${c.displayId} ${c.name} (active: ${c.isActive}, approved: ${c.approvalStatus}, district: ${c.captainProfile?.districtId}, availability: ${c.captainProfile?.availabilityStatus})`)
+    //console.log(`- ${c.displayId} ${c.name} (active: ${c.isActive}, approved: ${c.approvalStatus}, district: ${c.captainProfile?.districtId}, availability: ${c.captainProfile?.availabilityStatus})`)
   })
 
   const captains = await prisma.user.findMany({
@@ -114,10 +114,10 @@ export async function GET(req: NextRequest) {
     orderBy: { name: 'asc' },
   })
 
-  console.log('[CAPTAINS/AVAILABLE] Found captains:', captains.length)
+  //console.log('[CAPTAINS/AVAILABLE] Found captains:', captains.length)
   captains.forEach((c: any) => {
     const districts = [...new Set(c.captainProfile?.pointAssignments?.map((pa: any) => pa.location.district) || [])]
-    console.log(`- ${c.displayId} ${c.name} (primary district: ${c.captainProfile?.districtId}, operating districts: [${districts.join(', ')}], availability: ${c.captainProfile?.availabilityStatus})`)
+    //console.log(`- ${c.displayId} ${c.name} (primary district: ${c.captainProfile?.districtId}, operating districts: [${districts.join(', ')}], availability: ${c.captainProfile?.availabilityStatus})`)
   })
 
   return NextResponse.json({

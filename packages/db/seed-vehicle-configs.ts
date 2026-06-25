@@ -52,7 +52,7 @@ async function seedVehicleConfigurations() {
     })
   }
 
-  console.log('Vehicle configurations seeded successfully')
+  //console.log('Vehicle configurations seeded successfully')
 }
 
 seedVehicleConfigurations()

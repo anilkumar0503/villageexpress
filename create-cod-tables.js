@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function createCodTables() {
   try {
-    console.log('Connected to database');
+    
 
     // Create enums
     await prisma.$executeRawUnsafe(`DO $$ BEGIN
@@ -13,28 +13,28 @@ async function createCodTables() {
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;`);
-    console.log('Created CodCollectionMethod enum');
+    
 
     await prisma.$executeRawUnsafe(`DO $$ BEGIN
       CREATE TYPE "CodCollectionStatus" AS ENUM ('COLLECTED', 'REMITTED', 'PARTIALLY_REMITTED');
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;`);
-    console.log('Created CodCollectionStatus enum');
+    
 
     await prisma.$executeRawUnsafe(`DO $$ BEGIN
       CREATE TYPE "RemittanceMethod" AS ENUM ('MANUAL', 'RAZORPAY', 'AUTO_DEBIT');
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;`);
-    console.log('Created RemittanceMethod enum');
+    
 
     await prisma.$executeRawUnsafe(`DO $$ BEGIN
       CREATE TYPE "RemittanceStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;`);
-    console.log('Created RemittanceStatus enum');
+    
 
     // Create CodCollection table
     await prisma.$executeRawUnsafe(`
@@ -53,14 +53,14 @@ async function createCodTables() {
         CONSTRAINT "CodCollection_pkey" PRIMARY KEY ("id")
       )
     `);
-    console.log('Created CodCollection table');
+    
 
     // Create indexes for CodCollection
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodCollection_userId_idx" ON "CodCollection"("userId")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodCollection_bookingId_idx" ON "CodCollection"("bookingId")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodCollection_status_idx" ON "CodCollection"("status")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodCollection_collectionDate_idx" ON "CodCollection"("collectionDate")`);
-    console.log('Created CodCollection indexes');
+    
 
     // Create foreign keys for CodCollection
     try {
@@ -69,10 +69,10 @@ async function createCodTables() {
         ADD CONSTRAINT "CodCollection_userId_fkey" 
         FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
       `);
-      console.log('Added CodCollection userId foreign key');
+      
     } catch (err) {
       if (err.code === 'P0001' || err.message?.includes('already exists')) {
-        console.log('CodCollection userId foreign key already exists');
+        
       } else {
         throw err;
       }
@@ -84,10 +84,10 @@ async function createCodTables() {
         ADD CONSTRAINT "CodCollection_bookingId_fkey" 
         FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE
       `);
-      console.log('Added CodCollection bookingId foreign key');
+      
     } catch (err) {
       if (err.code === 'P0001' || err.message?.includes('already exists')) {
-        console.log('CodCollection bookingId foreign key already exists');
+        
       } else {
         throw err;
       }
@@ -110,14 +110,14 @@ async function createCodTables() {
         CONSTRAINT "CodRemittance_pkey" PRIMARY KEY ("id")
       )
     `);
-    console.log('Created CodRemittance table');
+    
 
     // Create indexes for CodRemittance
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodRemittance_collectionId_idx" ON "CodRemittance"("collectionId")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodRemittance_userId_idx" ON "CodRemittance"("userId")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodRemittance_status_idx" ON "CodRemittance"("status")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "CodRemittance_remittanceDate_idx" ON "CodRemittance"("remittanceDate")`);
-    console.log('Created CodRemittance indexes');
+    
 
     // Create foreign keys for CodRemittance
     try {
@@ -126,10 +126,10 @@ async function createCodTables() {
         ADD CONSTRAINT "CodRemittance_collectionId_fkey" 
         FOREIGN KEY ("collectionId") REFERENCES "CodCollection"("id") ON DELETE CASCADE ON UPDATE CASCADE
       `);
-      console.log('Added CodRemittance collectionId foreign key');
+      
     } catch (err) {
       if (err.code === 'P0001' || err.message?.includes('already exists')) {
-        console.log('CodRemittance collectionId foreign key already exists');
+        
       } else {
         throw err;
       }
@@ -141,16 +141,16 @@ async function createCodTables() {
         ADD CONSTRAINT "CodRemittance_userId_fkey" 
         FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
       `);
-      console.log('Added CodRemittance userId foreign key');
+      
     } catch (err) {
       if (err.code === 'P0001' || err.message?.includes('already exists')) {
-        console.log('CodRemittance userId foreign key already exists');
+        
       } else {
         throw err;
       }
     }
 
-    console.log('✅ COD tables created successfully!');
+    
   } catch (error) {
     console.error('Error:', error);
   } finally {

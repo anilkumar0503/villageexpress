@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
 
   // Handle NEEDS_ACTION as a special case - it's not a real status
   const isNeedsAction = status === 'NEEDS_ACTION'
-  const actualStatus = isNeedsAction ? undefined : status
+  const isCancelled = status === 'CANCELLED'
+  const actualStatus = (isNeedsAction || isCancelled) ? undefined : status
 
   try {
     // Get Point Manager's shop location
@@ -60,7 +61,13 @@ export async function GET(req: NextRequest) {
 
     // Source segments: show all (or filtered if status specified)
     if (sourceSegmentIds.length > 0) {
-      if (isNeedsAction) {
+      if (isCancelled) {
+        // CANCELLED is a booking status, not segment status
+        where.OR.push({
+          routeSegmentId: { in: sourceSegmentIds },
+          booking: { status: 'CANCELLED' }
+        })
+      } else if (isNeedsAction) {
         // For NEEDS_ACTION, show PENDING and RECEIVED_AT_POINT
         where.OR.push({
           routeSegmentId: { in: sourceSegmentIds },
@@ -80,7 +87,13 @@ export async function GET(req: NextRequest) {
 
     // Destination segments: only show allowed statuses
     if (destSegmentIds.length > 0) {
-      if (isNeedsAction) {
+      if (isCancelled) {
+        // CANCELLED is a booking status, not segment status
+        where.OR.push({
+          routeSegmentId: { in: destSegmentIds },
+          booking: { status: 'CANCELLED' }
+        })
+      } else if (isNeedsAction) {
         // For NEEDS_ACTION, only show RECEIVED_AT_POINT (since PENDING doesn't apply to destinations)
         where.OR.push({
           routeSegmentId: { in: destSegmentIds },
@@ -130,6 +143,8 @@ export async function GET(req: NextRequest) {
               codCollectedAt: true,
               createdAt: true,
               paidAt: true,
+              receiverName: true,
+              receiverPhone: true,
               customer: {
                 select: { id: true, name: true, phone: true },
               },

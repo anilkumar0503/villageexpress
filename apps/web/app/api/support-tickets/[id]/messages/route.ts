@@ -152,7 +152,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // If user sent message, notify admin (placeholder - would need admin email list)
       else if (!isAdminUser) {
         // TODO: Implement admin notification system
-        console.log('[EMAIL] User sent message - notify admin team')
+        //console.log('[EMAIL] User sent message - notify admin team')
       }
     }
 

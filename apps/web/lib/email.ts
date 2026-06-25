@@ -14,7 +14,7 @@ function getTransporter() {
 
 async function sendMail(options: { to: string; subject: string; html: string }) {
   if (!smtpConfigured) {
-    console.log(`📧 [MAIL FALLBACK] To: ${options.to} | Subject: ${options.subject}`)
+    //console.log(`📧 [MAIL FALLBACK] To: ${options.to} | Subject: ${options.subject}`)
     return
   }
   await getTransporter().sendMail({ from: FROM, ...options })
@@ -26,7 +26,7 @@ export function generateOtp(): string {
 
 export async function sendOtpEmail(email: string, otp: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [OTP] ${email} → ${otp}`)
+    //console.log(`📧 [OTP] ${email} → ${otp}`)
     return
   }
   await sendMail({
@@ -47,7 +47,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
 
 export async function sendApprovalEmail(email: string, name: string, approved: boolean, reason?: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [APPROVAL] ${email} → ${approved ? 'APPROVED' : 'REJECTED'}`)
+    //console.log(`📧 [APPROVAL] ${email} → ${approved ? 'APPROVED' : 'REJECTED'}`)
     return
   }
   await sendMail({
@@ -61,7 +61,7 @@ export async function sendApprovalEmail(email: string, name: string, approved: b
 
 export async function sendBookingConfirmationEmail(email: string, name: string, bookingNumber: string, amount: number): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [BOOKING] ${email} → ${bookingNumber} confirmed`)
+    //console.log(`📧 [BOOKING] ${email} → ${bookingNumber} confirmed`)
     return
   }
   await sendMail({
@@ -81,7 +81,7 @@ export async function sendBookingConfirmationEmail(email: string, name: string, 
 
 export async function sendCaptainAssignedEmail(email: string, name: string, bookingNumber: string, captainName: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [CAPTAIN_ASSIGNED] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [CAPTAIN_ASSIGNED] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -100,7 +100,7 @@ export async function sendCaptainAssignedEmail(email: string, name: string, book
 
 export async function sendBookingPickedUpEmail(email: string, name: string, bookingNumber: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [PICKED_UP] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [PICKED_UP] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -118,7 +118,7 @@ export async function sendBookingPickedUpEmail(email: string, name: string, book
 
 export async function sendBookingDeliveredEmail(email: string, name: string, bookingNumber: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [DELIVERED] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [DELIVERED] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -137,7 +137,7 @@ export async function sendBookingDeliveredEmail(email: string, name: string, boo
 
 export async function sendBookingCancelledEmail(email: string, name: string, bookingNumber: string, refunded: boolean): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [CANCELLED] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [CANCELLED] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -156,7 +156,7 @@ export async function sendBookingCancelledEmail(email: string, name: string, boo
 
 export async function sendNewBookingToPM(email: string, name: string, bookingNumber: string, pickupLocation: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [NEW_BOOKING_PM] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [NEW_BOOKING_PM] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -175,7 +175,7 @@ export async function sendNewBookingToPM(email: string, name: string, bookingNum
 
 export async function sendCaptainAssignmentEmail(email: string, name: string, bookingNumber: string, pickupLocation: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [CAPTAIN_ASSIGN] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [CAPTAIN_ASSIGN] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -195,7 +195,7 @@ export async function sendCaptainAssignmentEmail(email: string, name: string, bo
 
 export async function sendPendingApprovalEmail(email: string, applicantName: string, applicantType: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [PENDING_APPROVAL] ${email} → ${applicantType} ${applicantName}`)
+    //console.log(`📧 [PENDING_APPROVAL] ${email} → ${applicantType} ${applicantName}`)
     return
   }
   await sendMail({
@@ -214,7 +214,7 @@ export async function sendPendingApprovalEmail(email: string, applicantName: str
 
 export async function sendMissingPricingRuleEmail(email: string, pickup: string, drop: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [MISSING_PRICING] ${email} → ${pickup} → ${drop}`)
+    //console.log(`📧 [MISSING_PRICING] ${email} → ${pickup} → ${drop}`)
     return
   }
   await sendMail({
@@ -233,7 +233,7 @@ export async function sendMissingPricingRuleEmail(email: string, pickup: string,
 
 export async function sendPasswordResetEmail(email: string, name: string, resetLink: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [PASSWORD_RESET] ${email} → ${resetLink}`)
+    //console.log(`📧 [PASSWORD_RESET] ${email} → ${resetLink}`)
     return
   }
   await sendMail({
@@ -257,7 +257,7 @@ export async function sendPasswordResetEmail(email: string, name: string, resetL
 
 export async function sendDeliveryOtpEmail(email: string, name: string, bookingNumber: string, otp: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [DELIVERY_OTP] ${email} → ${bookingNumber} OTP: ${otp}`)
+    //console.log(`📧 [DELIVERY_OTP] ${email} → ${bookingNumber} OTP: ${otp}`)
     return
   }
   await sendMail({
@@ -281,7 +281,7 @@ export async function sendDeliveryOtpEmail(email: string, name: string, bookingN
 
 export async function sendCodRemittanceEmail(email: string, name: string, remittanceId: string, amount: number, remittanceDate: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [COD_REMITTANCE] ${email} → ${remittanceId} Amount: ₹${amount}`)
+    //console.log(`📧 [COD_REMITTANCE] ${email} → ${remittanceId} Amount: ₹${amount}`)
     return
   }
   await sendMail({
@@ -306,7 +306,7 @@ export async function sendCodRemittanceEmail(email: string, name: string, remitt
 
 export async function sendCommissionPayoutEmail(email: string, name: string, payoutId: string, amount: number, payoutDate: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [COMMISSION_PAYOUT] ${email} → ${payoutId} Amount: ₹${amount}`)
+    //console.log(`📧 [COMMISSION_PAYOUT] ${email} → ${payoutId} Amount: ₹${amount}`)
     return
   }
   await sendMail({
@@ -331,7 +331,7 @@ export async function sendCommissionPayoutEmail(email: string, name: string, pay
 
 export async function sendWithdrawalRequestEmail(adminEmail: string, userName: string, userEmail: string, amount: number, requestId: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [WITHDRAWAL_REQUEST] ${adminEmail} → ${userEmail} Amount: ₹${amount}`)
+    //console.log(`📧 [WITHDRAWAL_REQUEST] ${adminEmail} → ${userEmail} Amount: ₹${amount}`)
     return
   }
   await sendMail({
@@ -354,7 +354,7 @@ export async function sendWithdrawalRequestEmail(adminEmail: string, userName: s
 
 export async function sendRefundProcessedEmail(email: string, name: string, bookingNumber: string, refundAmount: number, refundId: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [REFUND_PROCESSED] ${email} → ${bookingNumber} Amount: ₹${refundAmount}`)
+    //console.log(`📧 [REFUND_PROCESSED] ${email} → ${bookingNumber} Amount: ₹${refundAmount}`)
     return
   }
   await sendMail({
@@ -379,7 +379,7 @@ export async function sendRefundProcessedEmail(email: string, name: string, book
 
 export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [WELCOME] ${email}`)
+    //console.log(`📧 [WELCOME] ${email}`)
     return
   }
   await sendMail({
@@ -407,7 +407,7 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<voi
 
 export async function sendReviewRequestEmail(email: string, name: string, bookingNumber: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [REVIEW_REQUEST] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [REVIEW_REQUEST] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -432,7 +432,7 @@ export async function sendReviewRequestEmail(email: string, name: string, bookin
 
 export async function sendPaymentConfirmationEmail(email: string, name: string, bookingNumber: string, amount: number, paymentMethod: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [PAYMENT_CONFIRMED] ${email} → ${bookingNumber} Amount: ₹${amount}`)
+    //console.log(`📧 [PAYMENT_CONFIRMED] ${email} → ${bookingNumber} Amount: ₹${amount}`)
     return
   }
   await sendMail({
@@ -456,7 +456,7 @@ export async function sendPaymentConfirmationEmail(email: string, name: string, 
 
 export async function sendFailedDeliveryEmail(email: string, name: string, bookingNumber: string, reason: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [FAILED_DELIVERY] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [FAILED_DELIVERY] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({
@@ -479,7 +479,7 @@ export async function sendFailedDeliveryEmail(email: string, name: string, booki
 
 export async function sendDocumentRejectionEmail(email: string, name: string, documentType: string, reason: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [DOC_REJECTED] ${email} → ${documentType}`)
+    //console.log(`📧 [DOC_REJECTED] ${email} → ${documentType}`)
     return
   }
   await sendMail({
@@ -501,7 +501,7 @@ export async function sendDocumentRejectionEmail(email: string, name: string, do
 
 export async function sendAccountSuspendedEmail(email: string, name: string, reason: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [ACCOUNT_SUSPENDED] ${email}`)
+    //console.log(`📧 [ACCOUNT_SUSPENDED] ${email}`)
     return
   }
   await sendMail({
@@ -523,7 +523,7 @@ export async function sendAccountSuspendedEmail(email: string, name: string, rea
 
 export async function sendPasswordChangedEmail(email: string, name: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [PASSWORD_CHANGED] ${email}`)
+    //console.log(`📧 [PASSWORD_CHANGED] ${email}`)
     return
   }
   await sendMail({
@@ -543,7 +543,7 @@ export async function sendPasswordChangedEmail(email: string, name: string): Pro
 
 export async function sendBookingModifiedEmail(email: string, name: string, bookingNumber: string, changes: string): Promise<void> {
   if (!smtpConfigured) {
-    console.log(`📧 [BOOKING_MODIFIED] ${email} → ${bookingNumber}`)
+    //console.log(`📧 [BOOKING_MODIFIED] ${email} → ${bookingNumber}`)
     return
   }
   await sendMail({

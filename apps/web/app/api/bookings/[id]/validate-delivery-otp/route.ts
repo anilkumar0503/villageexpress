@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Create commission for final destination PM when OTP is validated
     if (lastSegment.assignedPointManagerId) {
-      console.log('[COMMISSION] Creating final destination PM commission for segment:', lastSegment.id, 'PM:', lastSegment.assignedPointManagerId)
+      //console.log('[COMMISSION] Creating final destination PM commission for segment:', lastSegment.id, 'PM:', lastSegment.assignedPointManagerId)
 
       // Look up commission rule for this route segment + vehicle type
       let commissionRule = await prisma.routeCommissionRule.findFirst({
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           select: { calculatedPrice: true },
         }))?.calculatedPrice ?? 0)
         const pmAmount = (bookingPrice * Number(commissionRule.pmCommissionPct)) / 100
-        console.log('[COMMISSION] Final destination PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
+        //console.log('[COMMISSION] Final destination PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
         if (pmAmount > 0) {
           await prisma.commissionLedger.create({
             data: {
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               amount: pmAmount,
             },
           })
-          console.log('[COMMISSION] Final destination PM commission created successfully')
+          //console.log('[COMMISSION] Final destination PM commission created successfully')
         }
       }
     }

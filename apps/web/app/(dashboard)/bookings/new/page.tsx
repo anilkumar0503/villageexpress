@@ -44,6 +44,7 @@ export default function NewBookingPage() {
   const [dropLocationId, setDropLocationId] = useState('')
   const [parcelType, setParcelType] = useState('GENERAL')
   const [numberOfBags, setNumberOfBags] = useState(1)
+  const [numberOfBagsInput, setNumberOfBagsInput] = useState('1')
   const [receiverName, setReceiverName] = useState('')
   const [receiverPhone, setReceiverPhone] = useState('')
   const [deliveryPriority, setDeliveryPriority] = useState('STANDARD')
@@ -791,7 +792,24 @@ export default function NewBookingPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Number of Bags/Parcels</Label>
-              <Input type="number" min="1" max="50" value={numberOfBags} onChange={(e) => setNumberOfBags(parseInt(e.target.value) || 1)} />
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={numberOfBagsInput}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '')
+                  setNumberOfBagsInput(raw)
+                  const v = parseInt(raw)
+                  if (!isNaN(v) && v >= 1 && v <= 50) setNumberOfBags(v)
+                }}
+                onBlur={() => {
+                  const v = parseInt(numberOfBagsInput)
+                  const safe = isNaN(v) || v < 1 ? 1 : Math.min(v, 50)
+                  setNumberOfBags(safe)
+                  setNumberOfBagsInput(String(safe))
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Delivery Priority</Label>

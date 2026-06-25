@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
-import { PackageSearch, Clock, CheckCircle2, TruckIcon, Users, MapPin, IndianRupee, CalendarDays, UserCheck, Plus, RefreshCw, Eye, Download, Loader2 } from 'lucide-react'
+import { PackageSearch, Clock, CheckCircle2, TruckIcon, Users, MapPin, IndianRupee, CalendarDays, UserCheck, Plus, RefreshCw, Eye, Download, Loader2, ArrowRight, Wallet, QrCode, Route, ShieldCheck, Percent, Settings2, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -119,10 +119,10 @@ export default function DashboardPage() {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
       const d = await res.json()
-      console.log('Chart data response:', d)
+      //console.log('Chart data response:', d)
       if (d.success) {
         setChartData(d.data.data)
-        console.log('Chart data set:', d.data.data)
+        //console.log('Chart data set:', d.data.data)
       } else {
         console.error('Chart data error:', d.error)
       }
@@ -138,7 +138,9 @@ export default function DashboardPage() {
   const s = stats
 
   return (
-    <div className="space-y-6" data-testid="dashboard-page">
+    <div className="space-y-6 max-w-6xl mx-auto" data-testid="dashboard-page">
+
+      {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="welcome-message">Welcome back, {user?.name}</h1>
@@ -152,40 +154,39 @@ export default function DashboardPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          {hasRole('CUSTOMER') && (
-            <Button asChild data-testid="new-booking-button">
-              <Link href="/bookings/new"><Plus className="h-4 w-4 mr-2" />New Booking</Link>
-            </Button>
-          )}
         </div>
       </div>
 
+      {/* ════════════════ CUSTOMER ════════════════ */}
       {hasRole('CUSTOMER') && (
         <>
+          {/* Stats */}
           <div className="grid gap-4 sm:grid-cols-3" data-testid="customer-stats">
             <StatCard icon={PackageSearch} label="Total Bookings" value={s?.total} color="blue" />
             <StatCard icon={Clock} label="Active" value={s?.active} color="yellow" />
             <StatCard icon={CheckCircle2} label="Delivered" value={s?.delivered} color="green" />
           </div>
 
+          {/* Quick Actions */}
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Actions</h2>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <QuickActionTile href="/bookings/new" icon={Plus} iconBg="bg-primary/10 text-primary" label="New Booking" desc="Book a parcel" primary />
+              <QuickActionTile href="/bookings/my" icon={PackageSearch} iconBg="bg-blue-100 text-blue-600" label="My Bookings" desc="Track shipments" />
+              <QuickActionTile href="/wallet" icon={Wallet} iconBg="bg-green-100 text-green-600" label="My Wallet" desc="Balance & history" />
+              <QuickActionTile href="/scan" icon={QrCode} iconBg="bg-purple-100 text-purple-600" label="Quick Scan" desc="Scan to track" />
+            </div>
+          </section>
+
+          {/* Recent Bookings */}
           <Card>
             <CardHeader>
               <CardTitle>Recent Bookings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Filters */}
               <div className="flex flex-wrap gap-3">
-                <Input
-                  placeholder="Search by booking number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="max-w-xs"
-                />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-input rounded-md bg-background text-sm"
-                >
+                <Input placeholder="Search by booking number..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="max-w-xs" />
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border border-input rounded-md bg-background text-sm">
                   <option value="ALL">All Status</option>
                   <option value="PENDING">Pending</option>
                   <option value="ASSIGNED">Assigned</option>
@@ -194,127 +195,51 @@ export default function DashboardPage() {
                   <option value="DELIVERED">Delivered</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="max-w-xs"
-                />
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="max-w-xs"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter('ALL')
-                    setSearchQuery('')
-                    setDateFrom('')
-                    setDateTo('')
-                  }}
-                >
-                  Clear Filters
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const csv = [
-                      ['Booking Number', 'Status', 'Pickup Location', 'Drop Location', 'Price', 'Created Date'],
-                      ...bookings.map(b => [
-                        b.bookingNumber,
-                        b.status,
-                        `${b.pickupLocation.pointName}, ${b.pickupLocation.village}`,
-                        `${b.dropLocation.pointName}, ${b.dropLocation.village}`,
-                        `₹${Number(b.calculatedPrice).toFixed(2)}`,
-                        new Date(b.createdAt).toLocaleDateString('en-IN')
-                      ])
-                    ].map(row => row.join(',')).join('\n')
-                    
-                    const blob = new Blob([csv], { type: 'text/csv' })
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `bookings-${new Date().toISOString().split('T')[0]}.csv`
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  }}
-                  disabled={bookings.length === 0}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="max-w-xs" />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="max-w-xs" />
+                <Button variant="outline" size="sm" onClick={() => { setStatusFilter('ALL'); setSearchQuery(''); setDateFrom(''); setDateTo('') }}>Clear</Button>
+                <Button variant="outline" size="sm" disabled={bookings.length === 0} onClick={() => {
+                  const csv = [['Booking Number','Status','Pickup','Drop','Price','Date'],...bookings.map(b=>[
+                    b.bookingNumber,b.status,`${b.pickupLocation.pointName}, ${b.pickupLocation.village}`,
+                    `${b.dropLocation.pointName}, ${b.dropLocation.village}`,`₹${Number(b.calculatedPrice).toFixed(2)}`,
+                    new Date(b.createdAt).toLocaleDateString('en-IN')
+                  ])].map(r=>r.join(',')).join('\n')
+                  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`bookings-${new Date().toISOString().split('T')[0]}.csv`})
+                  a.click()
+                }}>
+                  <Download className="h-4 w-4 mr-2" />Export CSV
                 </Button>
               </div>
               {bookingsLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading bookings...</div>
+                <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
               ) : bookings.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <PackageSearch className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No bookings yet</p>
-                  <Button asChild className="mt-4">
-                    <Link href="/bookings/new">Create Your First Booking</Link>
-                  </Button>
+                <div className="text-center py-10 text-muted-foreground">
+                  <PackageSearch className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                  <p className="font-medium">No bookings found</p>
+                  <Button asChild className="mt-4"><Link href="/bookings/new">Create Your First Booking</Link></Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {bookings.map((booking) => (
                     <div key={booking.id} className="border border-border rounded-lg p-4 hover:border-primary/40 transition-colors">
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="font-medium">{booking.bookingNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(booking.createdAt).toLocaleDateString('en-IN', { 
-                              day: 'numeric', 
-                              month: 'short', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
                         </div>
-                        <Badge className={STATUS_COLORS[booking.status] || 'bg-gray-100 text-gray-800'}>
-                          {booking.status}
-                        </Badge>
+                        <Badge className={STATUS_COLORS[booking.status] || 'bg-gray-100 text-gray-800'}>{booking.status}</Badge>
                       </div>
                       <div className="space-y-1 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span>{booking.pickupLocation.pointName}, {booking.pickupLocation.village}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span>{booking.dropLocation.pointName}, {booking.dropLocation.village}</span>
-                        </div>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                          <div className="flex items-center gap-2">
-                            <IndianRupee className="h-4 w-4" />
-                            <span className="font-medium">₹{Number(booking.calculatedPrice).toFixed(2)}</span>
-                          </div>
-                          {booking.captain && (
-                            <div className="text-xs text-muted-foreground">
-                              Captain: {booking.captain.name}
-                            </div>
-                          )}
+                        <div className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-3.5 w-3.5" /><span>{booking.pickupLocation.pointName}, {booking.pickupLocation.village}</span></div>
+                        <div className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-3.5 w-3.5" /><span>{booking.dropLocation.pointName}, {booking.dropLocation.village}</span></div>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                          <span className="font-medium text-sm">₹{Number(booking.calculatedPrice).toFixed(2)}</span>
+                          {booking.captain && <span className="text-xs text-muted-foreground">Captain: {booking.captain.name}</span>}
                         </div>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-border flex gap-2">
-                        <Button asChild variant="outline" size="sm" className="flex-1">
-                          <Link href={`/bookings/${booking.id}`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Link>
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => router.push(`/bookings/new?pickupId=${booking.pickupLocation.id}&dropId=${booking.dropLocation.id}`)}
-                          className="flex-1"
-                        >
-                          Book Again
-                        </Button>
+                      <div className="mt-3 pt-3 border-t flex gap-2">
+                        <Button asChild variant="outline" size="sm" className="flex-1"><Link href={`/bookings/${booking.id}`}><Eye className="h-3.5 w-3.5 mr-1.5" />View</Link></Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push(`/bookings/new?pickupId=${booking.pickupLocation.id}&dropId=${booking.dropLocation.id}`)}>Book Again</Button>
                       </div>
                     </div>
                   ))}
@@ -325,8 +250,32 @@ export default function DashboardPage() {
         </>
       )}
 
+      {/* ════════════════ CAPTAIN ════════════════ */}
+      {hasRole('CAPTAIN') && (
+        <>
+          {/* Stats */}
+          <div className="grid gap-4 sm:grid-cols-2" data-testid="captain-stats">
+            <StatCard icon={TruckIcon} label="Active Assignments" value={s?.assigned} color="blue" />
+            <StatCard icon={CheckCircle2} label="Delivered Today" value={s?.deliveredToday} color="green" />
+          </div>
+
+          {/* Quick Actions */}
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Actions</h2>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <QuickActionTile href="/captain" icon={TruckIcon} iconBg="bg-primary/10 text-primary" label="My Assignments" desc="View active deliveries" primary />
+              <QuickActionTile href="/scan" icon={QrCode} iconBg="bg-purple-100 text-purple-600" label="Quick Scan" desc="Scan parcel QR" />
+              <QuickActionTile href="/wallet" icon={Wallet} iconBg="bg-green-100 text-green-600" label="My Wallet" desc="Earnings & balance" />
+              <QuickActionTile href="/commissions" icon={IndianRupee} iconBg="bg-teal-100 text-teal-600" label="My Commissions" desc="Pending & paid" />
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ════════════════ POINT MANAGER ════════════════ */}
       {hasRole('POINT_MANAGER') && (
         <>
+          {/* Stats */}
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6" data-testid="point-manager-stats">
             <StatCard icon={PackageSearch} label="Pending Receipt" value={s?.pending} color="blue" />
             <StatCard icon={TruckIcon} label="In Transit" value={s?.inTransit} color="orange" />
@@ -335,55 +284,33 @@ export default function DashboardPage() {
             <StatCard icon={IndianRupee} label="Pending COD" value={s?.pendingCOD !== undefined ? `₹${Number(s.pendingCOD).toFixed(0)}` : undefined} color="yellow" />
             <StatCard icon={IndianRupee} label="Commission" value={s?.commission !== undefined ? `₹${Number(s.commission).toFixed(0)}` : undefined} color="teal" />
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 flex-wrap">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/bookings/point-manager">View Point Queue</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/cod-remittances">COD Remittances</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/commissions">Commissions</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
+          {/* Quick Actions */}
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Actions</h2>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <QuickActionTile href="/bookings/point-manager" icon={PackageSearch} iconBg="bg-primary/10 text-primary" label="Point Queue" desc="Confirm, assign & deliver" primary badge={s?.pending ? Number(s.pending) : undefined} />
+              <QuickActionTile href="/scan" icon={QrCode} iconBg="bg-purple-100 text-purple-600" label="Quick Scan" desc="Scan incoming parcel" />
+              <QuickActionTile href="/cod-remittances" icon={Wallet} iconBg="bg-amber-100 text-amber-600" label="COD Remittances" desc="Settle collections" />
+              <QuickActionTile href="/commissions" icon={IndianRupee} iconBg="bg-teal-100 text-teal-600" label="Commissions" desc="Earnings summary" />
+              <QuickActionTile href="/wallet" icon={IndianRupee} iconBg="bg-green-100 text-green-600" label="My Wallet" desc="Balance & history" />
+              <QuickActionTile href="/reports" icon={FileText} iconBg="bg-slate-100 text-slate-600" label="Reports" desc="View analytics" />
+            </div>
+          </section>
+
+          {/* Chart */}
           {chartLoading ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </CardContent>
-            </Card>
+            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : chartData.length > 0 ? (
-            <MetricsCharts
-              data={chartData}
-              period={chartPeriod}
-              onPeriodChange={setChartPeriod}
-            />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
-                No chart data available
-              </CardContent>
-            </Card>
-          )}
+            <MetricsCharts data={chartData} period={chartPeriod} onPeriodChange={setChartPeriod} />
+          ) : null}
         </>
       )}
 
-      {hasRole('CAPTAIN') && (
-        <div className="grid gap-4 sm:grid-cols-2" data-testid="captain-stats">
-          <StatCard icon={TruckIcon} label="Active Assignments" value={s?.assigned} color="blue" />
-          <StatCard icon={CheckCircle2} label="Delivered Today" value={s?.deliveredToday} color="green" />
-        </div>
-      )}
-
+      {/* ════════════════ ADMIN / SUPER_ADMIN ════════════════ */}
       {(hasRole('ADMIN') || hasRole('SUPER_ADMIN')) && (
         <>
+          {/* Stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="admin-stats-primary">
             <StatCard icon={PackageSearch} label="Total Bookings" value={s?.totalBookings} color="blue" />
             <StatCard icon={Users} label="Total Users" value={s?.totalUsers} color="purple" />
@@ -394,6 +321,24 @@ export default function DashboardPage() {
             <StatCard icon={CalendarDays} label="Bookings Today" value={s?.todayBookings} color="blue" href="/bookings" />
             <StatCard icon={IndianRupee} label="Total Revenue (Paid)" value={s?.totalRevenue !== undefined ? `₹${Number(s.totalRevenue).toLocaleString('en-IN')}` : undefined} color="green" />
           </div>
+
+          {/* Quick Actions */}
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Actions</h2>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <QuickActionTile href="/bookings" icon={PackageSearch} iconBg="bg-blue-100 text-blue-600" label="All Bookings" desc="View & manage" primary />
+              <QuickActionTile href="/approvals" icon={UserCheck} iconBg="bg-yellow-100 text-yellow-600" label="Approvals" desc="Captains & PMs" badge={s?.pendingApprovals ? Number(s.pendingApprovals) : undefined} />
+              <QuickActionTile href="/users" icon={Users} iconBg="bg-purple-100 text-purple-600" label="Users" desc="Manage accounts" />
+              <QuickActionTile href="/locations" icon={MapPin} iconBg="bg-green-100 text-green-600" label="Locations" desc="Points & hubs" />
+              <QuickActionTile href="/routes" icon={Route} iconBg="bg-indigo-100 text-indigo-600" label="Routes" desc="Routing config" />
+              <QuickActionTile href="/cod" icon={Wallet} iconBg="bg-amber-100 text-amber-600" label="COD Management" desc="Collections" />
+              <QuickActionTile href="/settings/commissions" icon={Percent} iconBg="bg-teal-100 text-teal-600" label="Commission Rules" desc="Rate config" />
+              <QuickActionTile href="/settings/pricing" icon={Settings2} iconBg="bg-slate-100 text-slate-600" label="Pricing Rules" desc="Fare config" />
+              {hasRole('SUPER_ADMIN') && (
+                <QuickActionTile href="/settings/roles" icon={ShieldCheck} iconBg="bg-red-100 text-red-600" label="Roles & Permissions" desc="Access control" />
+              )}
+            </div>
+          </section>
         </>
       )}
     </div>
@@ -436,4 +381,38 @@ function StatCard({ icon: Icon, label, value, color, href }: StatCardProps) {
     </Card>
   )
   return href ? <Link href={href}>{content}</Link> : content
+}
+
+type QuickActionTileProps = {
+  href: string
+  icon: React.ElementType
+  iconBg: string
+  label: string
+  desc: string
+  primary?: boolean
+  badge?: number
+}
+
+function QuickActionTile({ href, icon: Icon, iconBg, label, desc, primary, badge }: QuickActionTileProps) {
+  return (
+    <Link href={href}>
+      <Card className={`group h-full cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${primary ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/30'}`}>
+        <CardContent className="p-4 flex flex-col gap-2.5">
+          <div className="flex items-start justify-between">
+            <div className={`p-2.5 rounded-xl ${iconBg}`}>
+              <Icon className="h-5 w-5" />
+            </div>
+            {badge !== undefined && badge > 0 && (
+              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">{badge}</Badge>
+            )}
+          </div>
+          <div>
+            <p className={`text-sm font-semibold leading-tight ${primary ? 'text-primary' : ''}`}>{label}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+          </div>
+          <ArrowRight className={`h-3.5 w-3.5 mt-auto self-end text-muted-foreground group-hover:translate-x-1 transition-transform ${primary ? 'text-primary' : ''}`} />
+        </CardContent>
+      </Card>
+    </Link>
+  )
 }

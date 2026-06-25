@@ -123,15 +123,15 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       const balanceBefore = wallet.balance
       const balanceAfter = balanceBefore.minus(debitAmount)
 
-      console.log('[WALLET_DEBIT]', {
-        bookingId: booking.id,
-        bookingNumber: booking.bookingNumber,
-        paymentMethod: booking.paymentMethod,
-        paymentStatus: booking.paymentStatus,
-        calculatedPrice: debitAmount,
-        balanceBefore: balanceBefore.toString(),
-        balanceAfter: balanceAfter.toString(),
-      })
+      // console.log('[WALLET_DEBIT]', {
+      //   bookingId: booking.id,
+      //   bookingNumber: booking.bookingNumber,
+      //   paymentMethod: booking.paymentMethod,
+      //   paymentStatus: booking.paymentStatus,
+      //   calculatedPrice: debitAmount,
+      //   balanceBefore: balanceBefore.toString(),
+      //   balanceAfter: balanceAfter.toString(),
+      // })
 
       const result = await prisma.$transaction([
         prisma.wallet.update({
@@ -168,10 +168,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         }),
       ])
 
-      console.log('[WALLET_DEBIT_SUCCESS]', {
-        bookingId: booking.id,
-        newBalance: balanceAfter.toString(),
-      })
+      // console.log('[WALLET_DEBIT_SUCCESS]', {
+      //   bookingId: booking.id,
+      //   newBalance: balanceAfter.toString(),
+      // })
 
       updated = result[2]
     } else {

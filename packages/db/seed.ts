@@ -9,7 +9,7 @@ config({ path: resolve(__dirname, '../../.env') })
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  //console.log('🌱 Seeding database...')
 
   // ─── Roles ──────────────────────────────────────────────────────────────────
   const roles = await Promise.all([
@@ -46,7 +46,7 @@ async function main() {
   ])
 
   const [superAdminRole, adminRole, , pointManagerRole, captainRole, customerRole] = roles
-  console.log(`✅ ${roles.length} roles seeded`)
+  //console.log(`✅ ${roles.length} roles seeded`)
 
   // ─── Permissions ────────────────────────────────────────────────────────────
   const permissionDefs = [
@@ -91,7 +91,7 @@ async function main() {
       }),
     ),
   )
-  console.log(`✅ ${permissions.length} permissions seeded`)
+  //console.log(`✅ ${permissions.length} permissions seeded`)
 
   const perm = Object.fromEntries(permissions.map((p) => [p.name, p.id]))
 
@@ -171,7 +171,7 @@ async function main() {
       create: rp,
     })
   }
-  console.log(`✅ Role-permission mappings seeded`)
+  //console.log(`✅ Role-permission mappings seeded`)
 
   // ─── Super Admin user ────────────────────────────────────────────────────────
   const hashedPassword = await bcrypt.hash('VE@2026', 12)
@@ -200,8 +200,8 @@ async function main() {
     },
   })
 
-  console.log(`✅ Super Admin seeded: admin@villageexpress.in`)
-  console.log(`⚠️  Change the Super Admin password immediately after first login!`)
+  //console.log(`✅ Super Admin seeded: admin@villageexpress.in`)
+  //console.log(`⚠️  Change the Super Admin password immediately after first login!`)
 
   // ─── Clean up old sample data ─────────────────────────────────────────────────────
   await prisma.booking.deleteMany({})
@@ -279,7 +279,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ ${locations.length} sample locations seeded`)
+  //console.log(`✅ ${locations.length} sample locations seeded`)
 
   // ─── Sample Users ────────────────────────────────────────────────────────────────
   const adminPassword = await bcrypt.hash('Admin@123', 12)
@@ -396,7 +396,7 @@ async function main() {
     },
   })
 
-  console.log(`✅ Sample users seeded`)
+  //console.log(`✅ Sample users seeded`)
 
   // ─── Sample Bookings ─────────────────────────────────────────────────────────────
   const sampleBooking = await prisma.booking.upsert({
@@ -418,7 +418,7 @@ async function main() {
       status: 'CONFIRMED',
     },
   })
-  console.log(`✅ Sample booking seeded`)
+  //console.log(`✅ Sample booking seeded`)
 
   // ─── Sample Pricing Rules ─────────────────────────────────────────────────────────
   await prisma.pricingRule.create({
@@ -466,10 +466,10 @@ async function main() {
       estimatedDeliveryDays: 3,
     },
   })
-  console.log(`✅ Sample pricing rules seeded`)
+  //console.log(`✅ Sample pricing rules seeded`)
 
   // ─── Jagitial to Karimnagar Multi-Segment Route Seeder ───────────────────────────────
-  console.log('🛣️  Seeding Jagitial to Karimnagar route...')
+  //console.log('🛣️  Seeding Jagitial to Karimnagar route...')
 
   // Clean up existing route data
   await prisma.route.deleteMany({ where: { name: 'Jagitial to Karimnagar' } })
@@ -561,7 +561,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ 5 route locations created`)
+  //console.log(`✅ 5 route locations created`)
 
   // Create point managers for each location
   const routePmPassword = await bcrypt.hash('Pm@123', 12)
@@ -686,7 +686,7 @@ async function main() {
       create: { userId: karimnagarPM.id, shopName: 'Karimnagar Branch', shopLocationId: karimnagarLoc.id },
     }),
   ])
-  console.log(`✅ 5 point managers created`)
+  //console.log(`✅ 5 point managers created`)
 
   // Create captains for each segment
   const routeCaptainPassword = await bcrypt.hash('Captain@123', 12)
@@ -820,7 +820,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ 4 captains created`)
+  //console.log(`✅ 4 captains created`)
 
   // Create the route with segments
   const route = await prisma.route.create({
@@ -896,7 +896,7 @@ async function main() {
       pricingRules: true,
     },
   })
-  console.log(`✅ Route created: ${route.name} with ${route.segments.length} segments`)
+  //console.log(`✅ Route created: ${route.name} with ${route.segments.length} segments`)
 
   // Create test customer
   const testCustomer = await prisma.user.upsert({
@@ -917,7 +917,7 @@ async function main() {
     update: {},
     create: { userId: testCustomer.id, roleId: customerRole.id, isPrimary: true },
   })
-  console.log(`✅ Test customer created: ${testCustomer.email}`)
+  //console.log(`✅ Test customer created: ${testCustomer.email}`)
 
   // Create test booking with route
   const testBooking = await prisma.booking.create({
@@ -978,14 +978,14 @@ async function main() {
       },
     },
   })
-  console.log(`✅ Test booking created: ${testBooking.bookingNumber}`)
-  console.log(`   Route: Jagitial → Malial → Poodoor → Gangadhara → Karimnagar`)
-  console.log(`   Total Distance: 78km`)
-  console.log(`   Price: ₹${testBooking.calculatedPrice}`)
-  console.log(`   Segments: ${testBooking.segments.length}`)
+  //console.log(`✅ Test booking created: ${testBooking.bookingNumber}`)
+  //console.log(`   Route: Jagitial → Malial → Poodoor → Gangadhara → Karimnagar`)
+  //console.log(`   Total Distance: 78km`)
+  //console.log(`   Price: ₹${testBooking.calculatedPrice}`)
+  //console.log(`   Segments: ${testBooking.segments.length}`)
 
   // ─── Support System Seeders ─────────────────────────────────────────────────────
-  console.log('🎫 Seeding support system data...')
+  //console.log('🎫 Seeding support system data...')
 
   // Canned Responses
   const cannedResponses = await Promise.all([
@@ -1022,7 +1022,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ ${cannedResponses.length} canned responses seeded`)
+  //console.log(`✅ ${cannedResponses.length} canned responses seeded`)
 
   // Support Tickets for different users
   const now = new Date()
@@ -1122,7 +1122,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ 3 support tickets seeded`)
+  //console.log(`✅ 3 support tickets seeded`)
 
   // Captain Point Assignments
   const captainProfile1 = await prisma.captainProfile.findUnique({ where: { userId: captain1.id } })
@@ -1160,7 +1160,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ 4 captain point assignments seeded`)
+  //console.log(`✅ 4 captain point assignments seeded`)
 
   // Sample Coupon
   await prisma.coupon.upsert({
@@ -1182,7 +1182,7 @@ async function main() {
       applicableRoutes: [],
     },
   })
-  console.log(`✅ Sample coupon seeded`)
+  //console.log(`✅ Sample coupon seeded`)
 
   // Sample Wallet Transaction (instead of Payment)
   const customerWallet = await prisma.wallet.upsert({
@@ -1206,7 +1206,7 @@ async function main() {
       referenceType: 'BOOKING',
     },
   })
-  console.log(`✅ Sample wallet transaction seeded`)
+  //console.log(`✅ Sample wallet transaction seeded`)
 
   // Create wallet for captain first
   const captainWallet = await prisma.wallet.upsert({
@@ -1230,7 +1230,7 @@ async function main() {
       status: 'PENDING',
     },
   })
-  console.log(`✅ Sample withdrawal request seeded`)
+  //console.log(`✅ Sample withdrawal request seeded`)
 
   // Sample COD Collection first
   const codCollection = await prisma.codCollection.upsert({
@@ -1262,7 +1262,7 @@ async function main() {
       status: 'COMPLETED',
     },
   })
-  console.log(`✅ Sample COD remittance seeded`)
+  //console.log(`✅ Sample COD remittance seeded`)
 
   // Sample Audit Log
   await prisma.auditLog.create({
@@ -1275,9 +1275,9 @@ async function main() {
       userAgent: 'Mozilla/5.0',
     },
   })
-  console.log(`✅ Sample audit log seeded`)
+  //console.log(`✅ Sample audit log seeded`)
 
-  console.log('✅ Seeding complete!')
+  //console.log('✅ Seeding complete!')
 }
 
 main()

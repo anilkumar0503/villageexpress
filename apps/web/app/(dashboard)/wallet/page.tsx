@@ -213,14 +213,14 @@ export default function WalletPage() {
       const filterType = typeParam !== undefined ? typeParam : typeFilter
       if (filterType) url.searchParams.set('type', filterType)
 
-      console.log('[WALLET_FETCH] URL:', url.toString(), 'typeParam:', typeParam, 'typeFilter:', typeFilter, 'filterType:', filterType)
+      //console.log('[WALLET_FETCH] URL:', url.toString(), 'typeParam:', typeParam, 'typeFilter:', typeFilter, 'filterType:', filterType)
 
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       const data = await res.json()
-      console.log('[WALLET_FETCH] Response:', data)
-      console.log('[WALLET_FETCH] Balance:', data.data?.wallet?.balance, 'Type:', typeof data.data?.wallet?.balance)
+      //console.log('[WALLET_FETCH] Response:', data)
+      //console.log('[WALLET_FETCH] Balance:', data.data?.wallet?.balance, 'Type:', typeof data.data?.wallet?.balance)
       if (data.success) {
         if (append && wallet) {
           setWallet({

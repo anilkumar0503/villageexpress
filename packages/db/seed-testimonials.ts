@@ -8,11 +8,11 @@ config({ path: resolve(__dirname, '../../.env') })
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding testimonials...')
+  //console.log('🌱 Seeding testimonials...')
 
   // ─── Clean up existing testimonials ─────────────────────────────────────────────
   await prisma.testimonial.deleteMany({})
-  console.log('✅ Cleaned up existing testimonials')
+  //console.log('✅ Cleaned up existing testimonials')
 
   // ─── Sample Testimonials ────────────────────────────────────────────────────────
   const testimonials = await Promise.all([
@@ -139,8 +139,8 @@ async function main() {
     }),
   ])
 
-  console.log(`✅ ${testimonials.length} testimonials seeded (${testimonials.filter(t => t.isApproved).length} approved, ${testimonials.filter(t => !t.isApproved).length} pending)`)
-  console.log('🎉 Testimonial seeding completed successfully!')
+  //console.log(`✅ ${testimonials.length} testimonials seeded (${testimonials.filter(t => t.isApproved).length} approved, ${testimonials.filter(t => !t.isApproved).length} pending)`)
+  //console.log('🎉 Testimonial seeding completed successfully!')
 }
 
 main()

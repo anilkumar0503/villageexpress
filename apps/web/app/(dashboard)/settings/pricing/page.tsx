@@ -116,7 +116,7 @@ export default function PricingRulesPage() {
     try {
       const res = await fetch('/api/pricing-rules', { headers: { Authorization: `Bearer ${accessToken}` } })
       const text = await res.text()
-      console.log('[PRICING] Response text:', text)
+      //console.log('[PRICING] Response text:', text)
       const data = JSON.parse(text)
       if (data.success) setRules(data.data)
     } catch (err) {
@@ -130,7 +130,7 @@ export default function PricingRulesPage() {
     setRouteLoading(true)
     const res = await fetch('/api/routes', { headers: { Authorization: `Bearer ${accessToken}` } })
     const data = await res.json()
-    console.log('[PRICING] Routes data:', data)
+    //console.log('[PRICING] Routes data:', data)
     if (data.success) setRoutes(data.data)
     setRouteLoading(false)
   }

@@ -367,9 +367,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     // Auto-create commission ledger entries
     if (status === 'ASSIGNED' && updatedSegment.assignedPointManagerId) {
-      console.log('[COMMISSION] Creating PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
-      console.log('[COMMISSION] Segment vehicleType:', (updatedSegment as any).vehicleType)
-      console.log('[COMMISSION] Route segment ID:', updatedSegment.routeSegmentId)
+      //console.log('[COMMISSION] Creating PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
+      //console.log('[COMMISSION] Segment vehicleType:', (updatedSegment as any).vehicleType)
+      //console.log('[COMMISSION] Route segment ID:', updatedSegment.routeSegmentId)
 
       // Look up commission rule for this route segment + vehicle type
       let commissionRule = await prisma.routeCommissionRule.findFirst({
@@ -384,7 +384,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         orderBy: { vehicleType: 'desc' }, // prefer specific vehicle type rule over null
       })
 
-      console.log('[COMMISSION] Route commission rule:', commissionRule)
+      //console.log('[COMMISSION] Route commission rule:', commissionRule)
 
       // Fallback to global commission rules if no route-specific rule found
       if (!commissionRule) {
@@ -399,7 +399,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           },
           orderBy: { vehicleType: 'desc' },
         })
-        console.log('[COMMISSION] Global commission rule (active only, matching vehicleType):', globalRule)
+        //console.log('[COMMISSION] Global commission rule (active only, matching vehicleType):', globalRule)
 
         // If still null, fall back to ANY active global rule (for segments with null vehicleType)
         if (!globalRule) {
@@ -407,7 +407,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
             where: { isActive: true },
             orderBy: { vehicleType: 'desc' },
           })
-          console.log('[COMMISSION] Global commission rule (any active):', anyGlobalRule)
+          //console.log('[COMMISSION] Global commission rule (any active):', anyGlobalRule)
           commissionRule = anyGlobalRule as any
         } else {
           commissionRule = globalRule as any
@@ -420,7 +420,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           select: { calculatedPrice: true },
         }))?.calculatedPrice ?? 0)
         const pmAmount = (bookingPrice * Number(commissionRule.pmCommissionPct)) / 100
-        console.log('[COMMISSION] PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
+        //console.log('[COMMISSION] PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
         if (pmAmount > 0) {
           await prisma.commissionLedger.create({
             data: {
@@ -430,19 +430,19 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
               amount: pmAmount,
             },
           })
-          console.log('[COMMISSION] PM commission created successfully')
+          //console.log('[COMMISSION] PM commission created successfully')
         } else {
-          console.log('[COMMISSION] PM commission amount is 0, skipping')
+          //console.log('[COMMISSION] PM commission amount is 0, skipping')
         }
       } else {
-        console.log('[COMMISSION] No commission rule found for PM')
+        //console.log('[COMMISSION] No commission rule found for PM')
       }
     } else {
-      console.log('[COMMISSION] PM commission not created - status:', status, 'assignedPM:', updatedSegment.assignedPointManagerId)
+      //console.log('[COMMISSION] PM commission not created - status:', status, 'assignedPM:', updatedSegment.assignedPointManagerId)
     }
 
     if (status === 'DELIVERED' && updatedSegment.assignedCaptainId) {
-      console.log('[COMMISSION] Creating Captain commission for segment:', updatedSegment.id, 'Captain:', updatedSegment.assignedCaptainId)
+      //console.log('[COMMISSION] Creating Captain commission for segment:', updatedSegment.id, 'Captain:', updatedSegment.assignedCaptainId)
       let commissionRule = await prisma.routeCommissionRule.findFirst({
         where: {
           routeSegmentId: updatedSegment.routeSegmentId,
@@ -455,7 +455,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         orderBy: { vehicleType: 'desc' },
       })
 
-      console.log('[COMMISSION] Route commission rule:', commissionRule)
+      //console.log('[COMMISSION] Route commission rule:', commissionRule)
 
       // Fallback to global commission rules if no route-specific rule found
       if (!commissionRule) {
@@ -470,7 +470,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           },
           orderBy: { vehicleType: 'desc' },
         })
-        console.log('[COMMISSION] Global commission rule (active only, matching vehicleType):', globalRule)
+        //console.log('[COMMISSION] Global commission rule (active only, matching vehicleType):', globalRule)
 
         // If still null, fall back to ANY active global rule (for segments with null vehicleType)
         if (!globalRule) {
@@ -478,7 +478,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
             where: { isActive: true },
             orderBy: { vehicleType: 'desc' },
           })
-          console.log('[COMMISSION] Global commission rule (any active):', anyGlobalRule)
+          //console.log('[COMMISSION] Global commission rule (any active):', anyGlobalRule)
           commissionRule = anyGlobalRule as any
         } else {
           commissionRule = globalRule as any
@@ -491,7 +491,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           select: { calculatedPrice: true },
         }))?.calculatedPrice ?? 0)
         const captainAmount = (bookingPrice * Number(commissionRule.captainCommissionPct)) / 100
-        console.log('[COMMISSION] Captain commission amount:', captainAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.captainCommissionPct)
+        //console.log('[COMMISSION] Captain commission amount:', captainAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.captainCommissionPct)
         if (captainAmount > 0) {
           await prisma.commissionLedger.create({
             data: {
@@ -501,14 +501,14 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
               amount: captainAmount,
             },
           })
-          console.log('[COMMISSION] Captain commission created successfully')
+          //console.log('[COMMISSION] Captain commission created successfully')
         } else {
-          console.log('[COMMISSION] Captain commission amount is 0, skipping')
+          //console.log('[COMMISSION] Captain commission amount is 0, skipping')
         }
 
         // Create PM commission for segments that skip ASSIGNED status
         if (updatedSegment.assignedPointManagerId) {
-          console.log('[COMMISSION] Checking for existing PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
+          //console.log('[COMMISSION] Checking for existing PM commission for segment:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
           // Check if PM commission already exists
           const existingCommission = await prisma.commissionLedger.findFirst({
             where: {
@@ -518,11 +518,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
             },
           })
 
-          console.log('[COMMISSION] Existing PM commission found:', existingCommission)
+          //console.log('[COMMISSION] Existing PM commission found:', existingCommission)
           if (!existingCommission) {
-            console.log('[COMMISSION] Creating PM commission for segment on DELIVERED:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
+            //console.log('[COMMISSION] Creating PM commission for segment on DELIVERED:', updatedSegment.id, 'PM:', updatedSegment.assignedPointManagerId)
             const pmAmount = (bookingPrice * Number(commissionRule.pmCommissionPct)) / 100
-            console.log('[COMMISSION] PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
+            //console.log('[COMMISSION] PM commission amount:', pmAmount, 'from booking price:', bookingPrice, 'rate:', commissionRule.pmCommissionPct)
             if (pmAmount > 0) {
               await prisma.commissionLedger.create({
                 data: {
@@ -532,21 +532,21 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
                   amount: pmAmount,
                 },
               })
-              console.log('[COMMISSION] PM commission created successfully on DELIVERED')
+              //console.log('[COMMISSION] PM commission created successfully on DELIVERED')
             } else {
-              console.log('[COMMISSION] PM commission amount is 0, skipping')
+              //console.log('[COMMISSION] PM commission amount is 0, skipping')
             }
           } else {
-            console.log('[COMMISSION] PM commission already exists, skipping creation')
+            //console.log('[COMMISSION] PM commission already exists, skipping creation')
           }
         } else {
-          console.log('[COMMISSION] No assigned PM for segment, skipping PM commission')
+          //console.log('[COMMISSION] No assigned PM for segment, skipping PM commission')
         }
       } else {
-        console.log('[COMMISSION] No commission rule found for Captain')
+        //console.log('[COMMISSION] No commission rule found for Captain')
       }
     } else {
-      console.log('[COMMISSION] Captain commission not created - status:', status, 'assignedCaptain:', updatedSegment.assignedCaptainId)
+      //console.log('[COMMISSION] Captain commission not created - status:', status, 'assignedCaptain:', updatedSegment.assignedCaptainId)
     }
 
     // Note: Booking status is NOT updated to DELIVERED here

@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function createPayoutTable() {
   try {
-    console.log('Connected to database');
+    
 
     // Create enum type
     await prisma.$executeRawUnsafe(`DO $$ BEGIN
@@ -13,7 +13,7 @@ async function createPayoutTable() {
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;`);
-    console.log('Created PayoutMethod enum');
+    
 
     // Create table
     await prisma.$executeRawUnsafe(`
@@ -32,12 +32,12 @@ async function createPayoutTable() {
         CONSTRAINT "PayoutDetails_pkey" PRIMARY KEY ("id")
       )
     `);
-    console.log('Created PayoutDetails table');
+    
 
     // Create indexes
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PayoutDetails_userId_key" ON "PayoutDetails"("userId")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PayoutDetails_userId_idx" ON "PayoutDetails"("userId")`);
-    console.log('Created indexes');
+    
 
     // Add foreign key (without IF NOT EXISTS as it's not supported)
     try {
@@ -46,17 +46,17 @@ async function createPayoutTable() {
         ADD CONSTRAINT "PayoutDetails_userId_fkey" 
         FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
       `);
-      console.log('Added foreign key');
+      
     } catch (err) {
       // Constraint might already exist
       if (err.code === 'P0001' || err.message?.includes('already exists')) {
-        console.log('Foreign key already exists');
+        
       } else {
         throw err;
       }
     }
 
-    console.log('✅ PayoutDetails table created successfully!');
+    
   } catch (error) {
     console.error('Error:', error);
   } finally {

@@ -101,9 +101,9 @@ export async function POST(req: NextRequest) {
           (r: any) => r.priority === deliveryPriority && r.vehicleType === null,
         )
 
-      console.log('[PRICE-PREVIEW] pricingRules:', JSON.stringify(route.pricingRules.map((r: any) => ({ priority: r.priority, vehicleType: r.vehicleType, isActive: r.isActive }))))
-      console.log('[PRICE-PREVIEW] looking for priority:', deliveryPriority, 'vehicleType:', vehicleType)
-      console.log('[PRICE-PREVIEW] matchingRule:', matchingRule ? 'found' : 'not found')
+      //console.log('[PRICE-PREVIEW] pricingRules:', JSON.stringify(route.pricingRules.map((r: any) => ({ priority: r.priority, vehicleType: r.vehicleType, isActive: r.isActive }))))
+      //console.log('[PRICE-PREVIEW] looking for priority:', deliveryPriority, 'vehicleType:', vehicleType)
+      //console.log('[PRICE-PREVIEW] matchingRule:', matchingRule ? 'found' : 'not found')
 
       if (!matchingRule) return null
 

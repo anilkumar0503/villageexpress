@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
 
     // Check if user is a captain with incomplete onboarding, rejected KYC, or rejected registration
     const isCaptain = user.userRoles.some((ur: any) => ur.role.name === 'CAPTAIN')
-    console.log('[LOGIN] isCaptain:', isCaptain)
-    console.log('[LOGIN] captainProfile:', user.captainProfile)
+    // //console.log('[LOGIN] isCaptain:', isCaptain)
+    // //console.log('[LOGIN] captainProfile:', user.captainProfile)
     // @ts-ignore - onboardingStatus field exists in DB but TypeScript needs client regeneration
     const needsOnboarding = isCaptain && user.captainProfile?.onboardingStatus !== 'COMPLETED'
     // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
@@ -59,11 +59,11 @@ export async function POST(req: NextRequest) {
       user.captainProfile?.licenseVerificationStatus === 'REJECTED'
     )
     const hasRejectedRegistration = isCaptain && user.approvalStatus === 'REJECTED'
-    console.log('[LOGIN] needsOnboarding:', needsOnboarding)
-    console.log('[LOGIN] hasRejectedKyc:', hasRejectedKyc)
-    console.log('[LOGIN] hasRejectedRegistration:', hasRejectedRegistration)
-    console.log('[LOGIN] isActive:', user.isActive)
-    console.log('[LOGIN] approvalStatus:', user.approvalStatus)
+    // //console.log('[LOGIN] needsOnboarding:', needsOnboarding)
+    // //console.log('[LOGIN] hasRejectedKyc:', hasRejectedKyc)
+    // //console.log('[LOGIN] hasRejectedRegistration:', hasRejectedRegistration)
+    // //console.log('[LOGIN] isActive:', user.isActive)
+    // //console.log('[LOGIN] approvalStatus:', user.approvalStatus)
 
     // Allow login for captains who need onboarding, have rejected KYC, or have rejected registration
     if (!needsOnboarding && !hasRejectedKyc && !hasRejectedRegistration) {

@@ -399,10 +399,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               Receipt
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => router.push(`/bookings/new?pickupId=${booking.pickupLocation.id}&dropId=${booking.dropLocation.id}&receiverName=${encodeURIComponent(booking.receiverName || '')}&receiverPhone=${encodeURIComponent(booking.receiverPhone || '')}`)} className="gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Book Again
-          </Button>
+          {booking.customer.id === user?.id && (
+            <Button size="sm" variant="outline" onClick={() => router.push(`/bookings/new?pickupId=${booking.pickupLocation.id}&dropId=${booking.dropLocation.id}&receiverName=${encodeURIComponent(booking.receiverName || '')}&receiverPhone=${encodeURIComponent(booking.receiverPhone || '')}`)} className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Book Again
+            </Button>
+          )}
           {booking.status === 'DELIVERED' && booking.captain && (
             <Button size="sm" variant="outline" onClick={() => setShowRatingModal(true)} className="gap-2">
               <Star className="h-4 w-4" />

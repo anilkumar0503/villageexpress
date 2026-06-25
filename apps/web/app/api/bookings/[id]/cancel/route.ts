@@ -119,15 +119,15 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         const balanceBefore = wallet.balance
         const balanceAfter = balanceBefore.plus(refundAmount)
 
-        console.log('[WALLET_REFUND]', {
-          bookingId: booking.id,
-          bookingNumber: booking.bookingNumber,
-          paymentMethod: booking.paymentMethod,
-          paymentStatus: booking.paymentStatus,
-          paidAmount: refundAmount.toString(),
-          balanceBefore: balanceBefore.toString(),
-          balanceAfter: balanceAfter.toString(),
-        })
+        // console.log('[WALLET_REFUND]', {
+        //   bookingId: booking.id,
+        //   bookingNumber: booking.bookingNumber,
+        //   paymentMethod: booking.paymentMethod,
+        //   paymentStatus: booking.paymentStatus,
+        //   paidAmount: refundAmount.toString(),
+        //   balanceBefore: balanceBefore.toString(),
+        //   balanceAfter: balanceAfter.toString(),
+        // })
 
         await prisma.$transaction([
           prisma.wallet.update({
@@ -149,15 +149,15 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           }),
         ])
 
-        console.log('[WALLET_REFUND_SUCCESS]', {
-          bookingId: booking.id,
-          newBalance: balanceAfter.toString(),
-        })
+        // console.log('[WALLET_REFUND_SUCCESS]', {
+        //   bookingId: booking.id,
+        //   newBalance: balanceAfter.toString(),
+        // })
       } else {
-        console.log('[WALLET_REFUND_SKIP]', {
-          bookingId: booking.id,
-          reason: 'Wallet not found for customer',
-        })
+        // console.log('[WALLET_REFUND_SKIP]', {
+        //   bookingId: booking.id,
+        //   reason: 'Wallet not found for customer',
+        // })
       }
     } catch (err) {
       console.error('[WALLET_REFUND_ERROR]', err)

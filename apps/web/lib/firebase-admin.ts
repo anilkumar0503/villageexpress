@@ -31,7 +31,7 @@ export async function sendPushNotification(
 ): Promise<void> {
   const app = getApp()
   if (!app || fcmTokens.length === 0) {
-    console.log(`🔔 [PUSH FALLBACK] ${payload.title}: ${payload.body}`)
+    //console.log(`🔔 [PUSH FALLBACK] ${payload.title}: ${payload.body}`)
     return
   }
 

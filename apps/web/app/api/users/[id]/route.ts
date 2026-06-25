@@ -100,7 +100,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           // Note: districtIds would need to be stored in a separate table if we want full multi-district support
         }
 
-        console.log('[USERS/PUT] Updating captain profile:', captainUpdateData)
+        //console.log('[USERS/PUT] Updating captain profile:', captainUpdateData)
         await prisma.captainProfile.update({
           where: { userId: id },
           data: captainUpdateData,
@@ -108,7 +108,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
         // Update point assignments if provided
         if (selectedPoints && selectedPoints.length > 0) {
-          console.log('[USERS/PUT] Updating point assignments:', selectedPoints)
+          //console.log('[USERS/PUT] Updating point assignments:', selectedPoints)
           // Delete existing point assignments
           await prisma.captainPointAssignment.deleteMany({
             where: { captainId: captainProfile.id },
@@ -121,7 +121,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
               locationId,
             })),
           })
-          console.log('[USERS/PUT] Point assignments updated successfully')
+          //console.log('[USERS/PUT] Point assignments updated successfully')
         }
       }
     }

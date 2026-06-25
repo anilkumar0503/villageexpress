@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   // Check Razorpay credentials
-  console.log('[WALLET/RECHARGE] RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID ? 'SET' : 'NOT SET')
-  console.log('[WALLET/RECHARGE] RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET')
+  //console.log('[WALLET/RECHARGE] RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID ? 'SET' : 'NOT SET')
+  //console.log('[WALLET/RECHARGE] RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET')
   
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     return NextResponse.json({ success: false, error: 'Payment gateway not configured' }, { status: 500 })
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { amount } = parsed.data
-    console.log('[WALLET/RECHARGE] Amount:', amount, 'User:', session!.userId)
+    //console.log('[WALLET/RECHARGE] Amount:', amount, 'User:', session!.userId)
 
     // Get or create wallet
     let wallet = await prisma.wallet.findUnique({
@@ -41,13 +41,13 @@ export async function POST(req: NextRequest) {
     })
 
     if (!wallet) {
-      console.log('[WALLET/RECHARGE] Creating new wallet for user:', session!.userId)
+      //console.log('[WALLET/RECHARGE] Creating new wallet for user:', session!.userId)
       wallet = await prisma.wallet.create({
         data: { userId: session!.userId },
       })
     }
 
-    console.log('[WALLET/RECHARGE] Wallet ID:', wallet.id)
+    //console.log('[WALLET/RECHARGE] Wallet ID:', wallet.id)
 
     // Create Razorpay order (receipt must be max 40 chars)
     const receipt = `WR${Date.now().toString(36)}`
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    console.log('[WALLET/RECHARGE] Razorpay order created:', order.id)
+    //console.log('[WALLET/RECHARGE] Razorpay order created:', order.id)
 
     return NextResponse.json({
       success: true,

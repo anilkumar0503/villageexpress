@@ -8,7 +8,7 @@ config({ path: resolve(__dirname, '../../.env') })
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding blog data...')
+  //console.log('🌱 Seeding blog data...')
 
   // ─── Clean up existing blog data ───────────────────────────────────────────────
   await prisma.blogTagOnBlog.deleteMany({})
@@ -16,7 +16,7 @@ async function main() {
   await prisma.blog.deleteMany({})
   await prisma.blogTag.deleteMany({})
   await prisma.blogCategory.deleteMany({})
-  console.log('✅ Cleaned up existing blog data')
+  //console.log('✅ Cleaned up existing blog data')
 
   // ─── Blog Categories ───────────────────────────────────────────────────────────
   const categories = await Promise.all([
@@ -61,7 +61,7 @@ async function main() {
       },
     }),
   ])
-  console.log(`✅ ${categories.length} blog categories seeded`)
+  //console.log(`✅ ${categories.length} blog categories seeded`)
 
   // ─── Blog Tags ────────────────────────────────────────────────────────────────
   const tags = await Promise.all([
@@ -90,7 +90,7 @@ async function main() {
       data: { name: 'feature', slug: 'feature', isActive: true },
     }),
   ])
-  console.log(`✅ ${tags.length} blog tags seeded`)
+  //console.log(`✅ ${tags.length} blog tags seeded`)
 
   // ─── Sample Blog Posts ─────────────────────────────────────────────────────────
   const blog1 = await prisma.blog.create({
@@ -359,9 +359,9 @@ async function main() {
     },
   })
 
-  console.log(`✅ 6 blog posts seeded (5 published, 1 draft)`)
+  //console.log(`✅ 6 blog posts seeded (5 published, 1 draft)`)
 
-  console.log('🎉 Blog seeding completed successfully!')
+  //console.log('🎉 Blog seeding completed successfully!')
 }
 
 main()

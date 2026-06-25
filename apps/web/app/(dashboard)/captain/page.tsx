@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/use-auth'
 import { CameraCapture } from '@/components/camera-capture'
@@ -73,7 +74,25 @@ export default function CaptainPage() {
       fetch('/api/profile/me', { headers: { Authorization: `Bearer ${accessToken}` } }),
       fetch(`/api/bookings/segments/my?${params}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
     ])
-    const [profileData, segmentsData] = await Promise.all([profileRes.json(), segmentsRes.json()])
+
+    const parseJson = async (res: Response, label: string) => {
+      const text = await res.text()
+      if (!res.ok || !text.startsWith('{')) {
+        console.error(`[CAPTAIN] ${label} returned ${res.status}:`, text.slice(0, 200))
+        return { success: false, error: `Server error ${res.status}` }
+      }
+      try {
+        return JSON.parse(text)
+      } catch (e) {
+        console.error(`[CAPTAIN] ${label} invalid JSON:`, text.slice(0, 200))
+        return { success: false, error: 'Invalid server response' }
+      }
+    }
+
+    const [profileData, segmentsData] = await Promise.all([
+      parseJson(profileRes, 'profile'),
+      parseJson(segmentsRes, 'segments'),
+    ])
     if (profileData.success) {
       if (profileData.data.captainProfile) {
         setAvailability(profileData.data.captainProfile.availabilityStatus)
@@ -223,333 +242,240 @@ export default function CaptainPage() {
 
   const activeSegments = segments.filter((s) => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(s.status))
   const completedSegments = segments.filter((s) => s.status === 'DELIVERED')
+  const regularSegments = activeSegments.filter((s: any) => s.booking.status !== 'CANCELLED')
+  const cancelledSegments = activeSegments.filter((s: any) => s.booking.status === 'CANCELLED')
+  const isAccountOk = userStatus?.approvalStatus === 'APPROVED' && userStatus?.isActive
+  const kycIssues = profile ? [
+    profile.aadhaarVerificationStatus === 'REJECTED' && { doc: 'AADHAAR' as const, label: 'Aadhaar Card', reason: profile.aadhaarRejectionReason },
+    profile.licenseVerificationStatus === 'REJECTED' && { doc: 'LICENSE' as const, label: 'Driving License', reason: profile.licenseRejectionReason },
+  ].filter(Boolean) as { doc: 'AADHAAR' | 'LICENSE'; label: string; reason: string }[] : []
+
+  const STATUS_BORDER: Record<string, string> = {
+    ASSIGNED:         'border-l-indigo-500',
+    PICKED_UP:        'border-l-purple-500',
+    IN_TRANSIT:       'border-l-orange-500',
+    OUT_FOR_DELIVERY: 'border-l-cyan-500',
+  }
+
+  const renderAssignmentCard = (s: any, isCancelled: boolean) => (
+    <Card key={s.id} className={`border-l-4 ${isCancelled ? 'border-l-destructive opacity-75' : STATUS_BORDER[s.status] ?? 'border-l-border'}`}>
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm font-bold">{s.booking.bookingNumber}</span>
+              <Badge variant="outline" className="text-xs">Seg {s.sequenceOrder}</Badge>
+              <Badge variant={isCancelled ? 'destructive' : 'secondary'} className="text-xs">
+                {isCancelled ? 'Booking Cancelled' : s.status.replace(/_/g, ' ')}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{s.routeSegment.fromLocation.pointName}</span>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{s.routeSegment.toLocation.pointName}</span>
+            </div>
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span>{s.booking.customer.name} · {s.booking.customer.phone}</span>
+              <span>{s.booking.parcelWeight}kg · {s.booking.parcelType}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:flex-col sm:items-stretch sm:w-36">
+            {NEXT_STATUS[s.status] && !isCancelled && (
+              <Button
+                size="sm"
+                className="flex-1 sm:flex-none"
+                disabled={advancing === s.id}
+                onClick={() => advanceStatus(s.id, s.status)}
+              >
+                {advancing === s.id ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <ChevronRight className="h-4 w-4 mr-1.5" />}
+                {STATUS_LABEL[s.status]}
+              </Button>
+            )}
+            <Link href={`/bookings/${s.booking.id}`}>
+              <Button variant="outline" size="sm" className="w-full">Details</Button>
+            </Link>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Captain Dashboard</h1>
+    <div className="space-y-5 max-w-4xl mx-auto">
 
-      {/* Account Status Banner */}
-      {userStatus && (
-        <Card className={
-          userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
-            ? 'border-green-200 bg-green-50 dark:bg-green-900/10'
-            : userStatus.approvalStatus === 'REJECTED'
-            ? 'border-red-200 bg-red-50 dark:bg-red-900/10'
-            : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10'
-        }>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : userStatus.approvalStatus === 'REJECTED' ? (
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
-              )}
-              <div>
-                <p className="font-medium">
-                  {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
-                    ? 'Account Active'
-                    : userStatus.approvalStatus === 'REJECTED'
-                    ? 'Registration Rejected'
-                    : 'Registration Pending Approval'}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {userStatus.approvalStatus === 'APPROVED' && userStatus.isActive
-                    ? 'You can start accepting deliveries'
-                    : userStatus.approvalStatus === 'REJECTED'
-                    ? 'Your registration was rejected. Please contact support for more information.'
-                    : 'Your registration is under review. You will be notified once approved.'}
-                </p>
-              </div>
-            </div>
+      {/* ── Header row ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Captain Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Manage your deliveries and availability</p>
+        </div>
+        <Card className={`border-2 ${availability === 'AVAILABLE' ? 'border-green-400' : availability === 'BUSY' ? 'border-orange-400' : 'border-border'}`}>
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className={`h-2.5 w-2.5 rounded-full ${availability === 'AVAILABLE' ? 'bg-green-500 animate-pulse' : availability === 'BUSY' ? 'bg-orange-500' : 'bg-gray-400'}`} />
+            <span className="text-sm font-semibold">{availability.replace(/_/g, ' ')}</span>
+            {toggling ? (
+              <Loader2 className="h-4 w-4 animate-spin ml-1" />
+            ) : availability === 'BUSY' ? (
+              <Button size="sm" variant="outline" className="h-7 text-xs ml-1" onClick={() => handleAvailabilityChange('AVAILABLE')}>
+                Reset
+              </Button>
+            ) : (
+              <Select value={availability} onValueChange={(v) => handleAvailabilityChange(v as AvailabilityStatus)} disabled={toggling}>
+                <SelectTrigger className="h-7 w-28 text-xs border-0 shadow-none focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AVAILABLE">Set Available</SelectItem>
+                  <SelectItem value="OFF_DUTY">Set Off Duty</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Two-column layout: Left (Stats + Availability + Active), Right (Completed) */}
-      <div className="grid gap-6 sm:grid-cols-5">
-        {/* Left column: Stats + Availability + Active Assignments */}
-        <div className="sm:col-span-3 space-y-4">
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-3xl font-bold text-primary">{activeSegments.length}</p>
-                <p className="text-sm text-muted-foreground mt-1">Active Segments</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-3xl font-bold text-green-600">{completedSegments.length}</p>
-                <p className="text-sm text-muted-foreground mt-1">Delivered Today</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Earnings summary */}
-          {earnings && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">My Earnings</CardTitle>
-              </CardHeader>
-              <CardContent className="flex gap-6">
-                <div>
-                  <p className="text-lg font-bold text-yellow-600">₹{earnings.pending.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-blue-600">₹{earnings.approved.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Approved</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-green-600">₹{earnings.paid.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Paid</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* KYC Status */}
-          {profile && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText className="h-5 w-5" />
-                  KYC Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Aadhaar Card</span>
-                    <Badge variant={
-                      profile.aadhaarVerificationStatus === 'VERIFIED' ? 'default' :
-                      profile.aadhaarVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
-                    }>
-                      {profile.aadhaarVerificationStatus || 'PENDING'}
-                    </Badge>
-                  </div>
-                  {profile.aadhaarVerificationStatus === 'REJECTED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => setKycDialog({ documentType: 'AADHAAR' })}
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      Resubmit
-                    </Button>
-                  )}
-                </div>
-                {profile.aadhaarRejectionReason && (
-                  <p className="text-xs text-destructive flex items-center gap-1 ml-6">
-                    <AlertCircle className="h-3 w-3" />
-                    {profile.aadhaarRejectionReason}
-                  </p>
-                )}
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Driving License</span>
-                    <Badge variant={
-                      profile.licenseVerificationStatus === 'VERIFIED' ? 'default' :
-                      profile.licenseVerificationStatus === 'REJECTED' ? 'destructive' : 'secondary'
-                    }>
-                      {profile.licenseVerificationStatus || 'PENDING'}
-                    </Badge>
-                  </div>
-                  {profile.licenseVerificationStatus === 'REJECTED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => setKycDialog({ documentType: 'LICENSE' })}
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      Resubmit
-                    </Button>
-                  )}
-                </div>
-                {profile.licenseRejectionReason && (
-                  <p className="text-xs text-destructive flex items-center gap-1 ml-6">
-                    <AlertCircle className="h-3 w-3" />
-                    {profile.licenseRejectionReason}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Availability Toggle */}
-          <Card className="border-2" style={{ borderColor: availability === 'AVAILABLE' ? 'var(--color-primary)' : undefined }}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-5 w-5" />
-                Availability Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between gap-4">
-              <div>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${AVAILABILITY_COLORS[availability]}`}>
-                  {availability.replace(/_/g, ' ')}
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {availability === 'AVAILABLE' && 'You are visible for new assignments'}
-                  {availability === 'BUSY' && 'You are assigned to an active booking'}
-                  {availability === 'OFF_DUTY' && 'You are not accepting new bookings'}
-                </p>
-              </div>
-              {availability === 'BUSY' ? (
-                <Button
-                  size="sm"
-                  onClick={() => handleAvailabilityChange('AVAILABLE')}
-                  disabled={toggling}
-                  variant="outline"
-                >
-                  {toggling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Reset to Available
-                </Button>
-              ) : (
-                <Select
-                  value={availability}
-                  onValueChange={(v) => handleAvailabilityChange(v as AvailabilityStatus)}
-                  disabled={toggling}
-                >
-                  <SelectTrigger className="w-40">
-                    {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : <SelectValue />}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AVAILABLE">Available</SelectItem>
-                    <SelectItem value="OFF_DUTY">Off Duty</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Assignments */}
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Active Assignments</h2>
-            {activeSegments.length > 0 ? (
-              <div className="space-y-3">
-                {activeSegments.map((s: any) => (
-                  <Card key={s.id} className="border-primary/20">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-semibold">{s.booking.bookingNumber}</span>
-                            <Badge variant="secondary" className="text-xs">Seg {s.sequenceOrder}</Badge>
-                            <Badge variant="outline" className="text-xs">{s.status.replace(/_/g, ' ')}</Badge>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{s.routeSegment.fromLocation.pointName} → {s.routeSegment.toLocation.pointName}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{s.booking.customer.name} &middot; {s.booking.customer.phone}</p>
-                          <p className="text-xs text-muted-foreground">{s.booking.parcelWeight}kg • {s.booking.parcelType}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {NEXT_STATUS[s.status] && (
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            disabled={advancing === s.id}
-                            onClick={() => advanceStatus(s.id, s.status)}
-                          >
-                            {advancing === s.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
-                            {STATUS_LABEL[s.status]}
-                          </Button>
-                        )}
-                        <Link href={`/bookings/${s.booking.id}`}>
-                          <Button variant="outline" size="sm">Details</Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <PackageSearch className="h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="font-medium">No active assignments</p>
-                  <p className="text-sm text-muted-foreground">Set yourself as Available to receive bookings</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {/* Right column: Completed Deliveries */}
-        <div className="sm:col-span-2">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Completed Deliveries</h2>
-          {completedSegments.length > 0 ? (
-            <div className="space-y-3 max-h-[95vh] overflow-y-auto pr-2">
-              {completedSegments.map((s: any) => (
-                <Card key={s.id} className="border-green-200 dark:border-green-900/30">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-semibold">{s.booking.bookingNumber}</span>
-                          <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">Seg {s.sequenceOrder}</Badge>
-                          <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">{s.status.replace(/_/g, ' ')}</Badge>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{s.routeSegment.fromLocation.pointName} → {s.routeSegment.toLocation.pointName}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{s.booking.customer.name} &middot; {s.booking.customer.phone}</p>
-                        <p className="text-xs text-muted-foreground">{s.booking.parcelWeight}kg • {s.booking.parcelType}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Delivered today</p>
-                      </div>
-                    </div>
-                    <Link href={`/bookings/${s.booking.id}`}>
-                      <Button variant="outline" size="sm" className="w-full">View Details</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <PackageSearch className="h-10 w-10 text-muted-foreground mb-3" />
-                <p className="font-medium">No completed deliveries today</p>
-                <p className="text-sm text-muted-foreground">Completed deliveries will appear here</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
       </div>
+
+      {/* ── Account / KYC warnings ── */}
+      {userStatus && !isAccountOk && (
+        <div className={`flex items-start gap-3 rounded-lg border p-4 ${userStatus.approvalStatus === 'REJECTED' ? 'border-destructive/40 bg-destructive/5' : 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/10'}`}>
+          {userStatus.approvalStatus === 'REJECTED'
+            ? <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            : <Loader2 className="h-5 w-5 text-yellow-600 animate-spin mt-0.5 shrink-0" />}
+          <div>
+            <p className="font-semibold text-sm">{userStatus.approvalStatus === 'REJECTED' ? 'Registration Rejected' : 'Pending Approval'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {userStatus.approvalStatus === 'REJECTED'
+                ? 'Your registration was rejected. Contact support for details.'
+                : 'Your account is under review. You will be notified once approved.'}
+            </p>
+          </div>
+        </div>
+      )}
+      {kycIssues.map((issue) => (
+        <div key={issue.doc} className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-destructive">{issue.label} Rejected</p>
+              {issue.reason && <p className="text-xs text-muted-foreground truncate">{issue.reason}</p>}
+            </div>
+          </div>
+          <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs" onClick={() => setKycDialog({ documentType: issue.doc })}>
+            <Upload className="h-3 w-3 mr-1" /> Resubmit
+          </Button>
+        </div>
+      ))}
+
+      {/* ── Stats row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-2xl font-bold text-primary">{regularSegments.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Active Orders</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-2xl font-bold text-green-600">{completedSegments.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Delivered Today</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-2xl font-bold text-yellow-600">₹{earnings ? earnings.pending.toFixed(0) : '—'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pending Earnings</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-2xl font-bold text-emerald-600">₹{earnings ? earnings.paid.toFixed(0) : '—'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Paid Out</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Assignments (full width tabs) ── */}
+      <Tabs defaultValue="active">
+        <TabsList className="w-full">
+          <TabsTrigger value="active" className="flex-1 gap-1.5">
+            Active
+            {regularSegments.length > 0 && <Badge variant="secondary" className="text-xs px-1.5 py-0">{regularSegments.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="flex-1 gap-1.5">
+            Delivered
+            {completedSegments.length > 0 && <Badge variant="outline" className="text-xs px-1.5 py-0 bg-green-50 text-green-700 border-green-200">{completedSegments.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="flex-1 gap-1.5">
+            Cancelled
+            {cancelledSegments.length > 0 && <Badge variant="destructive" className="text-xs px-1.5 py-0">{cancelledSegments.length}</Badge>}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="mt-4 space-y-3">
+          {regularSegments.length > 0 ? regularSegments.map((s: any) => renderAssignmentCard(s, false)) : (
+            <Card><CardContent className="flex flex-col items-center py-16 text-center">
+              <PackageSearch className="h-10 w-10 text-muted-foreground mb-3" />
+              <p className="font-medium">No active assignments</p>
+              <p className="text-sm text-muted-foreground mt-1">Set yourself as Available to receive bookings</p>
+            </CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="completed" className="mt-4 space-y-3">
+          {completedSegments.length > 0 ? completedSegments.map((s: any) => (
+            <Card key={s.id} className="border-l-4 border-l-green-500">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-bold">{s.booking.bookingNumber}</span>
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Seg {s.sequenceOrder}</Badge>
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Delivered</Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{s.routeSegment.fromLocation.pointName}</span>
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{s.routeSegment.toLocation.pointName}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <span>{s.booking.customer.name} · {s.booking.customer.phone}</span>
+                      <span>{s.booking.parcelWeight}kg · {s.booking.parcelType}</span>
+                    </div>
+                  </div>
+                  <Link href={`/bookings/${s.booking.id}`}>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">Details</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )) : (
+            <Card><CardContent className="flex flex-col items-center py-16 text-center">
+              <PackageSearch className="h-10 w-10 text-muted-foreground mb-3" />
+              <p className="font-medium">No completed deliveries yet</p>
+            </CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="cancelled" className="mt-4 space-y-3">
+          {cancelledSegments.length > 0 ? cancelledSegments.map((s: any) => renderAssignmentCard(s, true)) : (
+            <Card><CardContent className="flex flex-col items-center py-16 text-center">
+              <PackageSearch className="h-10 w-10 text-muted-foreground mb-3" />
+              <p className="font-medium">No cancelled orders</p>
+            </CardContent></Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Pagination */}
       {total > pageSize && (
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, total)} of {total} assignments
+            Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
           </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(Math.ceil(total / pageSize), p + 1))}
-              disabled={page === Math.ceil(total / pageSize)}
-            >
-              Next
-            </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(Math.ceil(total / pageSize), p + 1))} disabled={page === Math.ceil(total / pageSize)}>Next</Button>
           </div>
         </div>
       )}

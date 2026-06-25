@@ -78,10 +78,10 @@ class EmailService {
 
   async sendEmail(email: EmailTemplate): Promise<boolean> {
     // Placeholder implementation - integrate with email provider
-    console.log('[EMAIL_SERVICE] Sending email:', {
-      to: email.to,
-      subject: email.subject,
-    })
+    // console.log('[EMAIL_SERVICE] Sending email:', {
+    //   to: email.to,
+    //   subject: email.subject,
+    // })
 
     // TODO: Integrate with email provider (SendGrid, Resend, AWS SES, etc.)
     // Example with Resend:

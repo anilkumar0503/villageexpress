@@ -133,11 +133,12 @@ export default function PMQueuePage() {
   const [otpValidationDialog, setOtpValidationDialog] = useState<{ bookingId: string } | null>(null)
   const [otpInput, setOtpInput] = useState('')
   const [validatingOtp, setValidatingOtp] = useState(false)
-  const [receiptDialog, setReceiptDialog] = useState<{ segmentId: string; bookingId: string } | null>(null)
+  const [receiptDialog, setReceiptDialog] = useState<{ segmentId: string; bookingId: string; existingReceiverPhone?: string } | null>(null)
   const [receiverPhone, setReceiverPhone] = useState('')
   const [deliveryConfirmationDialog, setDeliveryConfirmationDialog] = useState<{ segmentId: string; bookingId: string } | null>(null)
   const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
   const [deliveryImageUrl, setDeliveryImageUrl] = useState('')
+  const [collectingFromCaptain, setCollectingFromCaptain] = useState<string | null>(null)
   const [metrics, setMetrics] = useState({
     todayPickups: 0,
     todayDeliveries: 0,
@@ -300,17 +301,19 @@ export default function PMQueuePage() {
     }
   }
 
-  async function confirmReceipt(segmentId: string, bookingId: string) {
-    setReceiptDialog({ segmentId, bookingId })
+  async function confirmReceipt(segmentId: string, bookingId: string, existingReceiverPhone?: string) {
+    setReceiptDialog({ segmentId, bookingId, existingReceiverPhone: existingReceiverPhone || '' })
+    setReceiverPhone(existingReceiverPhone || '')
   }
 
   async function submitReceipt() {
     if (!receiptDialog) return
     setConfirming(receiptDialog.segmentId)
+    const phoneToUse = receiptDialog.existingReceiverPhone || receiverPhone
     const res = await fetch(`/api/bookings/segments/${receiptDialog.segmentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ status: 'RECEIVED_AT_POINT', receiverPhone }),
+      body: JSON.stringify({ status: 'RECEIVED_AT_POINT', receiverPhone: phoneToUse }),
     })
     if (res.status === 401) {
       handleAuthError()
@@ -326,6 +329,19 @@ export default function PMQueuePage() {
 
   async function confirmDelivery(segmentId: string, bookingId: string) {
     setDeliveryConfirmationDialog({ segmentId, bookingId })
+  }
+
+  async function collectFromCaptain(segmentId: string) {
+    setCollectingFromCaptain(segmentId)
+    const res = await fetch(`/api/bookings/segments/${segmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ status: 'HANDED_OFF' }),
+    })
+    if (res.status === 401) { handleAuthError(); setCollectingFromCaptain(null); return }
+    setCollectingFromCaptain(null)
+    await fetchData()
+    await fetchAllSegmentsForMetrics()
   }
 
   async function submitDeliveryConfirmation() {
@@ -520,23 +536,29 @@ export default function PMQueuePage() {
     }
   }
 
-  const segments = statusFilter === 'ALL' || statusFilter === 'NEEDS_ACTION'
+  const segments = statusFilter === 'ALL'
     ? allSegments.filter((s) => !searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allSegments.filter((s) => s.status === statusFilter && (!searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase())))
+    : statusFilter === 'NEEDS_ACTION'
+    ? allSegments.filter((s) => (s.status === 'PENDING' || s.status === 'RECEIVED_AT_POINT') && s.booking.status !== 'CANCELLED' && (!searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase())))
+    : statusFilter === 'CANCELLED'
+    ? allSegments.filter((s) => s.booking.status === 'CANCELLED' && (!searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase())))
+    : allSegments.filter((s) => s.status === statusFilter && s.booking.status !== 'CANCELLED' && (!searchQuery || s.booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase())))
 
   const counts = Object.fromEntries(
-    Object.keys(STATUS_META).map((k: string) => [k, allSegmentsForMetrics.filter((s: any) => s.status === k).length])
+    Object.keys(STATUS_META).map((k: string) => [k, allSegmentsForMetrics.filter((s: any) => s.status === k && s.booking.status !== 'CANCELLED').length])
   )
+  const cancelledCount = allSegmentsForMetrics.filter((s: any) => s.booking.status === 'CANCELLED').length
+  counts['CANCELLED'] = cancelledCount
   const actionNeeded = (counts['PENDING'] ?? 0) + (counts['RECEIVED_AT_POINT'] ?? 0)
   counts['NEEDS_ACTION'] = actionNeeded
 
   return (
-    <div className="space-y-5 " data-testid="point-manager-page">
+    <div className="space-y-5 max-w-6xl mx-auto" data-testid="point-manager-page">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">Point Manager Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5" data-testid="total-segments">{allSegmentsForMetrics.length} total segment{allSegmentsForMetrics.length !== 1 ? 's' : ''} at your location</p>
+          <p className="text-sm text-muted-foreground mt-0.5" data-testid="total-segments">{allSegmentsForMetrics.length} segment{allSegmentsForMetrics.length !== 1 ? 's' : ''} at your location</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={openSettlementDialog} disabled={loading} data-testid="cod-settlement-button">
@@ -550,6 +572,29 @@ export default function PMQueuePage() {
         </div>
       </div>
 
+      {/* Needs Action alert */}
+      {!loading && actionNeeded > 0 && (
+        <button
+          onClick={() => setStatusFilter('NEEDS_ACTION')}
+          className="w-full flex items-center justify-between gap-3 rounded-lg border-2 border-primary/40 bg-primary/5 p-4 hover:bg-primary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">{actionNeeded} item{actionNeeded !== 1 ? 's' : ''} need your attention</p>
+              <p className="text-xs text-muted-foreground">
+                {counts['PENDING'] > 0 && `${counts['PENDING']} pending receipt`}
+                {counts['PENDING'] > 0 && counts['RECEIVED_AT_POINT'] > 0 && ' · '}
+                {counts['RECEIVED_AT_POINT'] > 0 && `${counts['RECEIVED_AT_POINT']} need captain`}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-medium text-primary">View →</span>
+        </button>
+      )}
+
       {/* Key Metrics */}
       {!loading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="metrics-cards">
@@ -562,45 +607,13 @@ export default function PMQueuePage() {
         </div>
       )}
 
-      {/* Activity Timeline */}
-      {!loading && allSegmentsForMetrics.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-48 overflow-y-auto">
-              {allSegmentsForMetrics.slice(0, 5).map((s: any) => (
-                <div key={s.id} className="flex items-center gap-3 text-sm">
-                  <div className={`h-2 w-2 rounded-full ${
-                    s.status === 'DELIVERED' ? 'bg-green-500' :
-                    s.status === 'IN_TRANSIT' ? 'bg-orange-500' :
-                    s.status === 'PENDING' ? 'bg-yellow-500' :
-                    'bg-blue-500'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="font-medium">{s.booking.bookingNumber}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {s.routeSegment.fromLocation.pointName} → {s.routeSegment.toLocation.pointName}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {STATUS_META[s.status]?.label || s.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search */}
-      <div className="flex gap-2">
+      {/* Search + Status tabs */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <Input
-          placeholder="Search by booking number..."
+          placeholder="Search by booking number…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
+          className="max-w-xs"
         />
       </div>
 
@@ -650,11 +663,12 @@ export default function PMQueuePage() {
             const needsReceipt = s.status === 'PENDING' && s.booking.status !== 'CANCELLED'
             const needsCaptain = s.status === 'RECEIVED_AT_POINT' && !s.captain && s.booking.status !== 'CANCELLED'
             const needsDeliveryConfirmation = s.status === 'OUT_FOR_DELIVERY' && s.booking.status !== 'CANCELLED' && s.pmRole === 'INCOMING'
+            const needsCollectFromCaptain = s.pmRole === 'INCOMING' && s.status === 'IN_TRANSIT' && !!s.captain && s.booking.status !== 'CANCELLED'
             const isLastSegment = s.sequenceOrder === s.booking.segments.length
             const needsOtpValidation = s.status === 'DELIVERED' && s.booking.status !== 'DELIVERED' && s.booking.status !== 'CANCELLED' && isLastSegment
             return (
-              <Card key={s.id} className={`overflow-hidden transition-shadow hover:shadow-md ${needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation ? 'border-primary/30' : ''}`} data-testid={`segment-card-${s.id}`}>
-                {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation) && (
+              <Card key={s.id} className={`overflow-hidden transition-shadow hover:shadow-md ${needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation || needsCollectFromCaptain ? 'border-primary/30' : ''}`} data-testid={`segment-card-${s.id}`}>
+                {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation || needsCollectFromCaptain) && (
                   <div className="h-0.5 bg-primary w-full" />
                 )}
                 <CardContent className="p-4">
@@ -782,7 +796,7 @@ export default function PMQueuePage() {
                     </div>
 
                     {/* Right: action area */}
-                    {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation || (s.booking.paymentMethod === 'COD' && !s.codCollectedAt && s.booking.paymentStatus !== 'PAID') || (s.booking.paymentStatus === 'PENDING_PAYMENT')) && (
+                    {(needsReceipt || needsCaptain || needsDeliveryConfirmation || needsOtpValidation || needsCollectFromCaptain || (s.booking.paymentMethod === 'COD' && !s.codCollectedAt && s.booking.paymentStatus !== 'PAID' && s.booking.status !== 'CANCELLED') || (s.booking.paymentStatus === 'PENDING_PAYMENT' && s.booking.status !== 'CANCELLED')) && (
                       <>
                         <Separator orientation="vertical" className="hidden sm:block h-auto self-stretch" />
                         <div className="sm:w-52 flex flex-col justify-center gap-2">
@@ -793,7 +807,7 @@ export default function PMQueuePage() {
                                 size="sm"
                                 className="w-full"
                                 disabled={confirming === s.id}
-                                onClick={() => confirmReceipt(s.id, s.booking.id)}
+                                onClick={() => confirmReceipt(s.id, s.booking.id, s.booking.receiverPhone)}
                               >
                                 {confirming === s.id
                                   ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
@@ -851,7 +865,7 @@ export default function PMQueuePage() {
                               </Button>
                             </>
                           )}
-                          {s.booking.paymentMethod === 'COD' && !s.codCollectedAt && !s.booking.codCollectedAt && s.booking.paymentStatus !== 'PAID' && (
+                          {s.booking.paymentMethod === 'COD' && !s.codCollectedAt && !s.booking.codCollectedAt && s.booking.paymentStatus !== 'PAID' && s.booking.status !== 'CANCELLED' && (
                             <>
                               <p className="text-xs font-medium text-muted-foreground">Collect COD payment?</p>
                               <Button
@@ -878,6 +892,22 @@ export default function PMQueuePage() {
                               >
                                 <Camera className="h-3.5 w-3.5 mr-2" />
                                 Capture Pickup Image
+                              </Button>
+                            </>
+                          )}
+                          {needsCollectFromCaptain && (
+                            <>
+                              <p className="text-xs font-medium text-muted-foreground">Captain arrived with parcel?</p>
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                disabled={collectingFromCaptain === s.id}
+                                onClick={() => collectFromCaptain(s.id)}
+                              >
+                                {collectingFromCaptain === s.id
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                  : <Truck className="h-3.5 w-3.5 mr-2" />}
+                                Collect from Captain
                               </Button>
                             </>
                           )}
@@ -1392,19 +1422,33 @@ export default function PMQueuePage() {
             <DialogTitle>Confirm Parcel Receipt</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please enter the receiver's phone number to confirm receipt of the parcel at your location.
-            </p>
             <div className="space-y-2">
-              <Label htmlFor="receiverPhone">Receiver Phone Number</Label>
-              <Input
-                id="receiverPhone"
-                placeholder="Enter 10-digit phone number"
-                value={receiverPhone}
-                onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                maxLength={10}
-                className="text-center text-xl tracking-widest"
-              />
+              <p className="text-sm text-muted-foreground">
+                {receiptDialog?.existingReceiverPhone
+                  ? 'Confirm receipt of this parcel at your location.'
+                  : 'No receiver phone was captured during booking. Please enter it now.'}
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="receiptPhone">Receiver Phone Number</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="receiptPhone"
+                    placeholder="Enter 10-digit phone number"
+                    value={receiverPhone}
+                    readOnly={!!(receiptDialog?.existingReceiverPhone && receiverPhone === receiptDialog.existingReceiverPhone)}
+                    onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    maxLength={10}
+                    className="text-center text-xl tracking-widest"
+                  />
+                  {receiptDialog?.existingReceiverPhone && receiverPhone === receiptDialog.existingReceiverPhone && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setReceiverPhone('')}>
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

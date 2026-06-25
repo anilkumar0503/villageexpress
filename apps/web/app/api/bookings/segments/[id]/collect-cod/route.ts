@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return booking
       })
 
-      console.log('COD collected for direct booking:', updatedBooking.codCollectedAt)
+      //console.log('COD collected for direct booking:', updatedBooking.codCollectedAt)
 
       return NextResponse.json({ success: true, message: 'COD collected successfully' })
     }
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return segment
     })
 
-    console.log('COD collected for segment:', updatedSegment.codCollectedAt)
+    //console.log('COD collected for segment:', updatedSegment.codCollectedAt)
 
     // Check if this is the last segment for the booking
     const totalSegments = await prisma.bookingSegment.count({
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           codCollectedAtLocation: collectionLocationId,
         } as any,
       })
-      console.log('COD collected for booking (all segments):', updatedBooking.codCollectedAt)
+      //console.log('COD collected for booking (all segments):', updatedBooking.codCollectedAt)
     }
 
     return NextResponse.json({ success: true, message: 'COD collected successfully' })
