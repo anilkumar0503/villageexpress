@@ -514,7 +514,15 @@ export default function CaptainPage() {
               Resubmit {kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar Card' : 'Driving License'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
+            {resubmitting && (
+              <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <p className="text-sm text-muted-foreground">Submitting...</p>
+                </div>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               Please upload a clear photo of your {kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar card' : 'driving license'} for verification.
             </p>
@@ -532,6 +540,7 @@ export default function CaptainPage() {
                 placeholder={kycDialog?.documentType === 'AADHAAR' ? 'Aadhaar Number' : 'License Number'}
                 className="flex-1 px-3 py-2 border rounded-md text-sm"
                 id="kyc-number"
+                disabled={resubmitting}
               />
               <Button
                 size="sm"

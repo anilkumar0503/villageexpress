@@ -251,7 +251,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     }
 
     const allowedTransitions = validTransitions[currentSegment.status] || []
-    if (!allowedTransitions.includes(status)) {
+    if (status !== currentSegment.status && !allowedTransitions.includes(status)) {
       return NextResponse.json(
         { success: false, error: `Invalid status transition from ${currentSegment.status} to ${status}` },
         { status: 400 }
@@ -549,9 +549,58 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       //console.log('[COMMISSION] Captain commission not created - status:', status, 'assignedCaptain:', updatedSegment.assignedCaptainId)
     }
 
-    // Note: Booking status is NOT updated to DELIVERED here
-    // It will be updated to DELIVERED only after OTP validation
-    // This allows the OTP validation button to show for the final segment
+    // Update booking status to reflect the highest segment status
+    // This ensures the tracking timeline shows correct progress
+    // DELIVERED is excluded - it requires OTP validation separately
+    if (status !== 'DELIVERED') {
+      const allSegments = await prisma.bookingSegment.findMany({
+        where: { bookingId: currentSegment.bookingId },
+        select: { status: true },
+      })
+
+      console.log('[BOOKING_STATUS_UPDATE] All segments:', allSegments.map(s => s.status))
+
+      // Map segment statuses to booking statuses for priority
+      const statusPriority: Record<string, number> = {
+        PENDING: 0,
+        RECEIVED_AT_POINT: 1,
+        ASSIGNED: 2,
+        PICKED_UP: 3,
+        IN_TRANSIT: 4,
+        OUT_FOR_DELIVERY: 5,
+        HANDED_OFF: 4,
+        DELIVERED: 6,
+      }
+
+      // Find the highest priority status among all segments
+      const highestStatus = allSegments.reduce((highest, seg) => {
+        const segPriority = statusPriority[seg.status] ?? 0
+        const highestPriority = statusPriority[highest] ?? 0
+        return segPriority > highestPriority ? seg.status : highest
+      }, 'PENDING')
+
+      console.log('[BOOKING_STATUS_UPDATE] Highest segment status:', highestStatus)
+
+      // Map segment status to booking status
+      const segmentToBookingStatus: Record<string, string> = {
+        PENDING: 'PENDING',
+        RECEIVED_AT_POINT: 'CONFIRMED',
+        ASSIGNED: 'ASSIGNED',
+        PICKED_UP: 'PICKED_UP',
+        IN_TRANSIT: 'IN_TRANSIT',
+        OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+        HANDED_OFF: 'IN_TRANSIT',
+      }
+
+      const bookingStatus = (segmentToBookingStatus[highestStatus] || highestStatus) as 'PENDING' | 'CONFIRMED' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
+      console.log('[BOOKING_STATUS_UPDATE] Mapped booking status:', bookingStatus)
+
+      await prisma.booking.update({
+        where: { id: currentSegment.bookingId },
+        data: { status: bookingStatus },
+      })
+      console.log('[BOOKING_STATUS_UPDATE] Booking status updated to:', bookingStatus)
+    }
 
     // If handed off, update next segment to RECEIVED_AT_POINT
     if (status === 'HANDED_OFF') {

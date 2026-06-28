@@ -26,6 +26,23 @@ type Location = {
   isActive: boolean
 }
 
+const STATES = ['Telangana', 'Andhra Pradesh']
+
+const DISTRICTS: Record<string, string[]> = {
+  'Telangana': [
+    'Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon', 'Jayashankar Bhupalpally',
+    'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Kumuram Bheem Asifabad', 'Mahabubabad',
+    'Mahabubnagar', 'Mancherial', 'Medak', 'Medchal Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda',
+    'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Ranga Reddy', 'Sangareddy',
+    'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal Rural', 'Warangal Urban', 'Yadadri Bhongir'
+  ],
+  'Andhra Pradesh': [
+    'Alluri Sitharama Raju', 'Anakapalli', 'Ananthapur', 'Annamayya', 'Bapatla', 'Chittoor', 'Dr. B.R. Ambedkar Konaseema',
+    'East Godavari', 'Eluru', 'Guntur', 'Kakinada', 'Krishna', 'Kurnool', 'NTR', 'Nandyal', 'Palnadu', 'Parvathipuram Manyam',
+    'Prakasam', 'Srikakulam', 'Tirupati', 'Visakhapatnam', 'Vizianagaram', 'West Godavari', 'Y.S.R. Kadapa'
+  ]
+}
+
 const EMPTY_FORM = {
   state: '', district: '', mandal: '', village: '',
   pointName: '', pincode: '', latitude: '', longitude: '',
@@ -65,6 +82,10 @@ export default function LocationsPage() {
     setForm(EMPTY_FORM)
     setError('')
     setDialogOpen(true)
+  }
+
+  function handleStateChange(state: string) {
+    setForm((f) => ({ ...f, state, district: '' }))
   }
 
   function openEdit(loc: Location) {
@@ -203,9 +224,33 @@ export default function LocationsPage() {
             <DialogTitle>{editing ? 'Edit Location' : 'Add Location'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label>State</Label>
+              <Select value={form.state} onValueChange={handleStateChange}>
+                <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                <SelectContent>
+                  {STATES.map((state) => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>District</Label>
+              <Select
+                value={form.district}
+                onValueChange={(v) => setForm((f) => ({ ...f, district: v }))}
+                disabled={!form.state}
+              >
+                <SelectTrigger><SelectValue placeholder={form.state ? 'Select district' : 'Select state first'} /></SelectTrigger>
+                <SelectContent>
+                  {form.state && DISTRICTS[form.state]?.map((district) => (
+                    <SelectItem key={district} value={district}>{district}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {([
-              ['state', 'State', 'e.g. Andhra Pradesh'],
-              ['district', 'District', 'e.g. Guntur'],
               ['mandal', 'Mandal (optional)', 'e.g. Narasaraopet'],
               ['village', 'Village', 'e.g. Chilakaluripet'],
               ['pointName', 'Point Name', 'e.g. VE Chilakaluripet Hub'],

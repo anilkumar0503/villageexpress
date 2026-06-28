@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth/permissions'
 import { getPresignedUploadUrl, type AllowedMimeType, type UploadBucket } from '@/lib/storage'
 
 const ALLOWED_FOLDERS: Record<string, { bucket: UploadBucket; mimeTypes: AllowedMimeType[]; public: boolean }> = {
-  'shop-photos':        { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
+  'shop-photos':        { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: true },
   'profile-photos':     { bucket: 'public',  mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], public: false },
   'aadhaar':            { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },
   'driving-license':    { bucket: 'private', mimeTypes: ['image/jpeg', 'image/png', 'application/pdf'], public: true },

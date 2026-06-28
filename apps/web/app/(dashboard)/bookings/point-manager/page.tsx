@@ -84,7 +84,7 @@ const PRIORITY_COLOR: Record<string, string> = {
   OVERNIGHT: 'bg-purple-100 text-purple-700',
 }
 
-const TABS = ['NEEDS_ACTION', 'ALL', 'PENDING', 'RECEIVED_AT_POINT', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
+const TABS = ['NEEDS_ACTION', 'ALL', 'PENDING', 'RECEIVED_AT_POINT', 'ASSIGNED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']
 
 function MetricCard({ label, value, icon: Icon, color, highlight }: { label: string; value: string | number; icon: any; color: string; highlight?: boolean }) {
   return (

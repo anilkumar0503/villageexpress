@@ -98,6 +98,21 @@ export default function CommissionsSettingsPage() {
 
   async function saveRule() {
     if (!editForm) return
+
+    // Validation
+    if (!isGlobal && !editForm.routeSegmentId) {
+      alert('Please select a route segment')
+      return
+    }
+    if (!editForm.vehicleType) {
+      alert('Please select a vehicle type')
+      return
+    }
+    if (!editForm.captainCommissionPct || !editForm.pmCommissionPct) {
+      alert('Please enter commission percentages')
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -111,11 +126,17 @@ export default function CommissionsSettingsPage() {
       const url = editForm.editingId ? `/api/commission-rules/${editForm.editingId}` : '/api/commission-rules'
       const method = editForm.editingId ? 'PUT' : 'POST'
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(payload),
       })
+
+      const data = await res.json()
+      if (!data.success) {
+        alert(data.error || 'Failed to save commission rule')
+        return
+      }
 
       setEditForm(null)
       if (isGlobal) {
@@ -256,7 +277,7 @@ export default function CommissionsSettingsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" disabled={(!isGlobal && !editForm?.routeSegmentId) || saving} onClick={saveRule}>
+                <Button size="sm" disabled={!editForm || (!isGlobal && !editForm.routeSegmentId) || saving} onClick={saveRule}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   {editForm?.editingId ? 'Update' : 'Save Rule'}
                 </Button>

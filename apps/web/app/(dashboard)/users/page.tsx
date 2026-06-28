@@ -24,6 +24,7 @@ type User = {
   userRoles: { role: { name: string }; isPrimary: boolean }[]
   pointManagerProfile?: {
     shopLocation?: {
+      id: string
       pointName: string
       village: string
       district: string
@@ -76,9 +77,13 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingCaptainPoints, setEditingCaptainPoints] = useState<User | null>(null)
+  const [editingPMLocation, setEditingPMLocation] = useState<User | null>(null)
   const [availablePoints, setAvailablePoints] = useState<any[]>([])
   const [selectedPoints, setSelectedPoints] = useState<string[]>([])
   const [savingPoints, setSavingPoints] = useState(false)
+  const [availableLocations, setAvailableLocations] = useState<any[]>([])
+  const [selectedLocation, setSelectedLocation] = useState<string>('')
+  const [savingPMLocation, setSavingPMLocation] = useState(false)
   const [savingUser, setSavingUser] = useState(false)
   const [editFormData, setEditFormData] = useState<any>({})
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([])
@@ -201,6 +206,52 @@ export default function UsersPage() {
     }
   }
 
+  async function openPMLocationEditor(user: User) {
+    setEditingPMLocation(user)
+    setSelectedLocation(user.pointManagerProfile?.shopLocation?.id || '')
+    // Load all available locations
+    try {
+      const res = await fetch('/api/locations?isActive=true', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setAvailableLocations(data.data.items)
+      }
+    } catch (err) {
+      console.error('Failed to load locations', err)
+    }
+  }
+
+  async function savePMLocation() {
+    if (!editingPMLocation || !selectedLocation) return
+    setSavingPMLocation(true)
+    try {
+      const res = await fetch(`/api/users/${editingPMLocation.id}/point-manager-location`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ shopLocationId: selectedLocation }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        // Refresh user data
+        const userRes = await fetch(`/api/users?search=${editingPMLocation.displayId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        const userData = await userRes.json()
+        if (userData.success && userData.data.items.length > 0) {
+          const updatedUser = userData.data.items[0]
+          setUsers((prev) => prev.map((u: any) => u.id === updatedUser.id ? updatedUser : u))
+        }
+        setEditingPMLocation(null)
+      }
+    } catch (err) {
+      console.error('Failed to save PM location', err)
+    } finally {
+      setSavingPMLocation(false)
+    }
+  }
+
   async function openEditUser(user: User) {
     setEditingUser(user)
     setEditFormData({
@@ -213,7 +264,7 @@ export default function UsersPage() {
       districtId: user.captainProfile?.districtId || '',
       districtIds: (user.captainProfile as any)?.districtIds || [],
     })
-    
+
     // Derive districts from point assignments (captain can have points from multiple districts)
     const pointAssignments = user.captainProfile?.pointAssignments || []
     const existingPointIds = pointAssignments.map((pa) => pa.locationId)
@@ -491,6 +542,11 @@ export default function UsersPage() {
                         <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {role === 'POINT_MANAGER' && (
+                          <Button variant="ghost" size="sm" onClick={() => openPMLocationEditor(user)}>
+                            <MapPin className="h-4 w-4" />
+                          </Button>
+                        )}
                         {role === 'CAPTAIN' && (
                           <>
                             <Button variant="ghost" size="sm" onClick={() => openCaptainPointsEditor(user)}>
@@ -843,6 +899,53 @@ export default function UsersPage() {
                 <Button onClick={saveCaptainPoints} disabled={savingPoints || selectedPoints.length === 0}>
                   {savingPoints ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Save Points
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit PM Location Dialog */}
+      <Dialog open={!!editingPMLocation} onOpenChange={(open) => !open && setEditingPMLocation(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Point Manager Location</DialogTitle>
+          </DialogHeader>
+          {editingPMLocation && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                <p className="font-medium">{editingPMLocation.name}</p>
+                <p className="text-muted-foreground">{editingPMLocation.displayId}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Select New Location</Label>
+                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLocations.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.pointName} - {loc.village}, {loc.district}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedLocation && (
+                <p className="text-sm text-muted-foreground">
+                  Current: {editingPMLocation.pointManagerProfile?.shopLocation?.pointName || 'Not assigned'}
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditingPMLocation(null)}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={savePMLocation} disabled={savingPMLocation || !selectedLocation}>
+                  {savingPMLocation ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Location
                 </Button>
               </div>
             </div>

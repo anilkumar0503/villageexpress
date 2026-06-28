@@ -275,15 +275,7 @@ export default function DashboardPage() {
       {/* ════════════════ POINT MANAGER ════════════════ */}
       {hasRole('POINT_MANAGER') && (
         <>
-          {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6" data-testid="point-manager-stats">
-            <StatCard icon={PackageSearch} label="Pending Receipt" value={s?.pending} color="blue" />
-            <StatCard icon={TruckIcon} label="In Transit" value={s?.inTransit} color="orange" />
-            <StatCard icon={CheckCircle2} label="Delivered" value={s?.deliveredToday} color="green" />
-            <StatCard icon={IndianRupee} label="COD Collected" value={s?.codCollected !== undefined ? `₹${Number(s.codCollected).toFixed(0)}` : undefined} color="purple" />
-            <StatCard icon={IndianRupee} label="Pending COD" value={s?.pendingCOD !== undefined ? `₹${Number(s.pendingCOD).toFixed(0)}` : undefined} color="yellow" />
-            <StatCard icon={IndianRupee} label="Commission" value={s?.commission !== undefined ? `₹${Number(s.commission).toFixed(0)}` : undefined} color="teal" />
-          </div>
+         
 
           {/* Quick Actions */}
           <section>
@@ -298,6 +290,16 @@ export default function DashboardPage() {
             </div>
           </section>
 
+ {/* Stats */}
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6" data-testid="point-manager-stats">
+            <StatCard icon={PackageSearch} label="Pending Receipt" value={s?.pending} color="blue" />
+            <StatCard icon={TruckIcon} label="In Transit" value={s?.inTransit} color="orange" />
+            <StatCard icon={CheckCircle2} label="Delivered" value={s?.deliveredToday} color="green" />
+            <StatCard icon={IndianRupee} label="COD Collected" value={s?.codCollected !== undefined ? `₹${Number(s.codCollected).toFixed(0)}` : undefined} color="purple" />
+            <StatCard icon={IndianRupee} label="Pending COD" value={s?.pendingCOD !== undefined ? `₹${Number(s.pendingCOD).toFixed(0)}` : undefined} color="yellow" />
+            <StatCard icon={IndianRupee} label="Commission" value={s?.commission !== undefined ? `₹${Number(s.commission).toFixed(0)}` : undefined} color="teal" />
+          </div>
+          
           {/* Chart */}
           {chartLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>

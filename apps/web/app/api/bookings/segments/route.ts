@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
       select: { shopLocationId: true },
     })
 
+    console.log('[SEGMENTS_API] PM Profile:', pmProfile)
+
     if (!pmProfile) {
       return NextResponse.json({ success: false, error: 'Point Manager profile not found' }, { status: 404 })
     }
@@ -53,13 +55,18 @@ export async function GET(req: NextRequest) {
       .filter((rs: any) => rs.toLocationId === pmProfile.shopLocationId)
       .map((rs: any) => rs.id)
 
+    console.log('[SEGMENTS_API] Route segments found:', routeSegmentIds.length, routeSegmentIds)
+    console.log('[SEGMENTS_API] Source segment IDs:', sourceSegmentIds)
+    console.log('[SEGMENTS_API] Dest segment IDs:', destSegmentIds)
+    console.log('[SEGMENTS_API] Requested status:', status, 'actualStatus:', actualStatus)
+
     const allowedDestStatuses = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED']
 
     const where: any = {
       OR: []
     }
 
-    // Source segments: show all (or filtered if status specified)
+    // Source segments: show all except OUT_FOR_DELIVERY (that's for destination PM)
     if (sourceSegmentIds.length > 0) {
       if (isCancelled) {
         // CANCELLED is a booking status, not segment status
@@ -74,13 +81,18 @@ export async function GET(req: NextRequest) {
           status: { in: ['PENDING', 'RECEIVED_AT_POINT'] }
         })
       } else if (actualStatus) {
+        // Don't show OUT_FOR_DELIVERY to source PMs
+        if (actualStatus !== 'OUT_FOR_DELIVERY') {
+          where.OR.push({
+            routeSegmentId: { in: sourceSegmentIds },
+            status: actualStatus
+          })
+        }
+      } else {
+        // When no filter, exclude OUT_FOR_DELIVERY from source segments
         where.OR.push({
           routeSegmentId: { in: sourceSegmentIds },
-          status: actualStatus
-        })
-      } else {
-        where.OR.push({
-          routeSegmentId: { in: sourceSegmentIds }
+          status: { not: 'OUT_FOR_DELIVERY' }
         })
       }
     }
