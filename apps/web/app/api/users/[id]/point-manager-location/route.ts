@@ -49,10 +49,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: 'Location not found' }, { status: 404 })
     }
 
-    // Update the Point Manager's shop location
-    await prisma.pointManagerProfile.update({
+    // Upsert so assigning a location also creates the profile if it doesn't exist yet
+    await prisma.pointManagerProfile.upsert({
       where: { userId },
-      data: { shopLocationId },
+      update: { shopLocationId },
+      create: { userId, shopLocationId, shopName: user.name },
     })
 
     return NextResponse.json({ success: true, message: 'Location updated successfully' })

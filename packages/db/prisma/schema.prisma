@@ -319,6 +319,7 @@ model PointManagerProfile {
   shopName        String
   shopLocationId  String   @unique
   shopPhoto       String?
+  workingHours    Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

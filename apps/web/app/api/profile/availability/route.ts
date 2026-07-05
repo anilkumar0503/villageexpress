@@ -18,12 +18,9 @@ export async function PUT(req: NextRequest) {
   }
 
   const profile = await prisma.captainProfile.findUnique({ where: { userId: session!.userId } })
-  if (!profile) {
-    return NextResponse.json({ success: false, error: 'Captain profile not found' }, { status: 404 })
-  }
 
   // If captain is BUSY and trying to change to AVAILABLE, check for active bookings
-  if (profile.availabilityStatus === 'BUSY' && parsed.data.availabilityStatus === 'AVAILABLE') {
+  if (profile?.availabilityStatus === 'BUSY' && parsed.data.availabilityStatus === 'AVAILABLE') {
     // Check for active booking segments
     const activeSegments = await prisma.bookingSegment.findMany({
       where: {
@@ -79,9 +76,10 @@ export async function PUT(req: NextRequest) {
     }
   }
 
-  const updated = await prisma.captainProfile.update({
+  const updated = await prisma.captainProfile.upsert({
     where: { userId: session!.userId },
-    data: { availabilityStatus: parsed.data.availabilityStatus },
+    update: { availabilityStatus: parsed.data.availabilityStatus },
+    create: { userId: session!.userId, availabilityStatus: parsed.data.availabilityStatus },
   })
 
   return NextResponse.json({ success: true, data: { availabilityStatus: updated.availabilityStatus } })

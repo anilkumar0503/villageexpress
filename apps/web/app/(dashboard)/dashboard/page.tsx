@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
-import { PackageSearch, Clock, CheckCircle2, TruckIcon, Users, MapPin, IndianRupee, CalendarDays, UserCheck, Plus, RefreshCw, Eye, Download, Loader2, ArrowRight, Wallet, QrCode, Route, ShieldCheck, Percent, Settings2, FileText } from 'lucide-react'
+import { PackageSearch, Clock, CheckCircle2, TruckIcon, Users, MapPin, IndianRupee, CalendarDays, UserCheck, Plus, RefreshCw, Eye, Download, Loader2, ArrowRight, Wallet, QrCode, Route, ShieldCheck, Percent, Settings2, FileText, Power, AlarmClock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,10 @@ export default function DashboardPage() {
   const [chartPeriod, setChartPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   const [chartData, setChartData] = useState<any[]>([])
   const [chartLoading, setChartLoading] = useState(false)
+  const [availabilityStatus, setAvailabilityStatus] = useState<'AVAILABLE' | 'BUSY' | 'OFF_DUTY' | null>(null)
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [pmIsOpen, setPmIsOpen] = useState<boolean | null>(null)
+  const [pmOpenReason, setPmOpenReason] = useState('')
 
   async function fetchStats() {
     if (!accessToken) return
@@ -97,6 +101,12 @@ export default function DashboardPage() {
     if (hasRole('POINT_MANAGER')) {
       fetchChartData()
     }
+    if (hasRole('CAPTAIN')) {
+      fetchCaptainAvailability()
+    }
+    if (hasRole('POINT_MANAGER')) {
+      fetchPMOpenStatus()
+    }
     const interval = setInterval(() => {
       fetchStats()
       if (hasRole('CUSTOMER')) {
@@ -111,6 +121,55 @@ export default function DashboardPage() {
       fetchChartData()
     }
   }, [chartPeriod, accessToken, hasRole])
+
+  async function fetchPMOpenStatus() {
+    if (!accessToken) return
+    try {
+      const res = await fetch('/api/profile/working-hours', { headers: { Authorization: `Bearer ${accessToken}` } })
+      const d = await res.json()
+      if (d.success) {
+        const { isPointOpen } = await import('@/lib/working-hours')
+        const status = isPointOpen(d.data)
+        setPmIsOpen(status.open)
+        setPmOpenReason(status.reason ?? '')
+      }
+    } catch {}
+  }
+
+  async function fetchCaptainAvailability() {
+    if (!accessToken) return
+    try {
+      const res = await fetch('/api/profile/me', { headers: { Authorization: `Bearer ${accessToken}` } })
+      const d = await res.json()
+      if (d.success) setAvailabilityStatus(d.data.captainProfile?.availabilityStatus ?? null)
+    } catch {}
+  }
+
+  async function toggleAvailability() {
+    if (!accessToken || availabilityLoading || availabilityStatus === 'BUSY') return
+    const next = availabilityStatus === 'AVAILABLE' ? 'OFF_DUTY' : 'AVAILABLE'
+    setAvailabilityLoading(true)
+    const prev = availabilityStatus
+    setAvailabilityStatus(next)
+    try {
+      const res = await fetch('/api/profile/availability', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availabilityStatus: next }),
+      })
+      const d = await res.json()
+      if (d.success) {
+        setAvailabilityStatus(d.data.availabilityStatus)
+      } else {
+        setAvailabilityStatus(prev)
+        alert(d.error)
+      }
+    } catch {
+      setAvailabilityStatus(prev)
+    } finally {
+      setAvailabilityLoading(false)
+    }
+  }
 
   async function fetchChartData() {
     setChartLoading(true)
@@ -254,7 +313,8 @@ export default function DashboardPage() {
       {hasRole('CAPTAIN') && (
         <>
           {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-2" data-testid="captain-stats">
+          <div className="grid gap-4 sm:grid-cols-3" data-testid="captain-stats">
+            <AvailabilityTile status={availabilityStatus} loading={availabilityLoading} onToggle={toggleAvailability} />
             <StatCard icon={TruckIcon} label="Active Assignments" value={s?.assigned} color="blue" />
             <StatCard icon={CheckCircle2} label="Delivered Today" value={s?.deliveredToday} color="green" />
           </div>
@@ -275,7 +335,17 @@ export default function DashboardPage() {
       {/* ════════════════ POINT MANAGER ════════════════ */}
       {hasRole('POINT_MANAGER') && (
         <>
-         
+          {/* Open/Closed status badge */}
+          {pmIsOpen !== null && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border w-fit ${
+              pmIsOpen
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              <span className={`h-2 w-2 rounded-full ${pmIsOpen ? 'bg-green-500' : 'bg-red-500'}`} />
+              {pmIsOpen ? 'Your point is Open' : `Your point is Closed — ${pmOpenReason}`}
+            </div>
+          )}
 
           {/* Quick Actions */}
           <section>
@@ -287,6 +357,7 @@ export default function DashboardPage() {
               <QuickActionTile href="/commissions" icon={IndianRupee} iconBg="bg-teal-100 text-teal-600" label="Commissions" desc="Earnings summary" />
               <QuickActionTile href="/wallet" icon={IndianRupee} iconBg="bg-green-100 text-green-600" label="My Wallet" desc="Balance & history" />
               <QuickActionTile href="/reports" icon={FileText} iconBg="bg-slate-100 text-slate-600" label="Reports" desc="View analytics" />
+              <QuickActionTile href="/point-manager/working-hours" icon={AlarmClock} iconBg="bg-blue-100 text-blue-600" label="Working Hours" desc="Set open & close times" />
             </div>
           </section>
 
@@ -393,6 +464,56 @@ type QuickActionTileProps = {
   desc: string
   primary?: boolean
   badge?: number
+}
+
+type AvailabilityTileProps = {
+  status: 'AVAILABLE' | 'BUSY' | 'OFF_DUTY' | null
+  loading: boolean
+  onToggle: () => void
+}
+
+function AvailabilityTile({ status, loading, onToggle }: AvailabilityTileProps) {
+  const isAvailable = status === 'AVAILABLE'
+  const isBusy = status === 'BUSY'
+  const isOffDuty = status === 'OFF_DUTY'
+
+  const cardCls = isAvailable
+    ? 'border-green-300 bg-green-50 ring-1 ring-green-200'
+    : isBusy
+      ? 'border-amber-300 bg-amber-50 cursor-not-allowed'
+      : isOffDuty
+        ? 'border-gray-200 bg-gray-50'
+        : 'border-border'
+
+  const iconBg = isAvailable
+    ? 'bg-green-100 text-green-600'
+    : isBusy
+      ? 'bg-amber-100 text-amber-600'
+      : 'bg-gray-100 text-gray-500'
+
+  const label = isAvailable ? 'Available' : isBusy ? 'Busy' : isOffDuty ? 'Off Duty' : '—'
+  const labelCls = isAvailable ? 'text-green-700' : isBusy ? 'text-amber-700' : 'text-gray-600'
+  const desc = isAvailable ? 'Tap to go off duty' : isBusy ? 'Complete deliveries first' : 'Tap to go available'
+
+  return (
+    <button
+      onClick={isBusy || loading ? undefined : onToggle}
+      disabled={isBusy || loading}
+      className={`w-full text-left rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${cardCls} ${!isBusy && !loading ? 'cursor-pointer' : ''}`}
+    >
+      <div className="p-4 flex flex-col gap-2.5">
+        <div className="flex items-start justify-between">
+          <div className={`p-2.5 rounded-xl ${iconBg}`}>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Power className="h-5 w-5" />}
+          </div>
+        </div>
+        <div>
+          <p className={`text-sm font-semibold leading-tight ${labelCls}`}>{label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+        </div>
+      </div>
+    </button>
+  )
 }
 
 function QuickActionTile({ href, icon: Icon, iconBg, label, desc, primary, badge }: QuickActionTileProps) {

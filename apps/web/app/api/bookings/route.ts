@@ -4,6 +4,7 @@ import { prisma } from '@ve/db'
 import { generateBookingNumber } from '@ve/utils'
 import { requireAuth, requirePermission } from '@/lib/auth/permissions'
 import { resolvePrice, autoAssignPointManager } from '@/lib/booking/pricing-service'
+import { isPointOpen } from '@/lib/working-hours'
 import { sendNewBookingToPM, sendDeliveryOtpEmail } from '@/lib/email'
 
 type DistanceTier = {
@@ -146,6 +147,22 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Pickup and drop locations cannot be the same' },
         { status: 400 },
       )
+    }
+
+    // Check pickup point working hours
+    const pickupPMProfile = await prisma.pointManagerProfile.findUnique({
+      where: { shopLocationId: pickupLocationId },
+      // @ts-ignore - workingHours exists in DB but TypeScript needs client regeneration
+      select: { workingHours: true },
+    })
+    if (pickupPMProfile) {
+      const status = isPointOpen((pickupPMProfile as any).workingHours)
+      if (!status.open) {
+        return NextResponse.json(
+          { success: false, error: `Pickup point is currently closed. ${status.reason ?? ''}`.trim(), code: 'POINT_CLOSED' },
+          { status: 400 },
+        )
+      }
     }
 
     // Find matching route (either provided or auto-detected)
