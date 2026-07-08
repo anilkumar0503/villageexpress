@@ -45,7 +45,7 @@ const DISTRICTS: Record<string, string[]> = {
 
 const EMPTY_FORM = {
   state: '', district: '', mandal: '', village: '',
-  pointName: '', pincode: '', latitude: '', longitude: '',
+  pincode: '', latitude: '', longitude: '',
   locationType: 'POINT',
 }
 
@@ -92,7 +92,7 @@ export default function LocationsPage() {
     setEditing(loc)
     setForm({
       state: loc.state, district: loc.district, mandal: loc.mandal ?? '',
-      village: loc.village, pointName: loc.pointName, pincode: loc.pincode,
+      village: loc.village, pincode: loc.pincode,
       latitude: String(loc.latitude), longitude: String(loc.longitude),
       locationType: loc.locationType,
     })
@@ -253,12 +253,11 @@ export default function LocationsPage() {
             {([
               ['mandal', 'Mandal (optional)', 'e.g. Narasaraopet'],
               ['village', 'Village', 'e.g. Chilakaluripet'],
-              ['pointName', 'Point Name', 'e.g. VE Chilakaluripet Hub'],
               ['pincode', 'Pincode', '6-digit'],
               ['latitude', 'Latitude', 'e.g. 16.0900'],
               ['longitude', 'Longitude', 'e.g. 80.1667'],
             ] as [string, string, string][]).map(([key, label, placeholder]) => (
-              <div key={key} className={`space-y-1.5 ${key === 'pointName' ? 'col-span-2' : ''}`}>
+              <div key={key} className="space-y-1.5">
                 <Label>{label}</Label>
                 <Input
                   placeholder={placeholder}
