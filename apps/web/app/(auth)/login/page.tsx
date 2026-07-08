@@ -129,9 +129,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <img src="/logo.jpeg" alt="Village Express" className="w-12 h-12 rounded-xl" />
-          <h1 className="text-2xl font-bold tracking-tight">Village Express</h1>
-          <p className="text-sm text-muted-foreground">Courier management platform</p>
+          <img src="/logo.png" alt="Village Express" className="w-50 h-50 rounded-xl" />
+          {/* <h1 className="text-2xl font-bold tracking-tight">Village Express</h1> */}
+          {/* <p className="text-sm text-muted-foreground">Courier management platform</p> */}
         </div>
 
         <Card>

@@ -9,6 +9,8 @@ const PUBLIC_ROUTES = [
   '/api/auth/refresh',
   '/api/auth/logout',
   '/api/auth/password-reset',
+  '/api/auth/google',
+  '/api/auth/google/callback',
   '/api/users/register',
   '/api/locations/cascading',
   '/api/locations',

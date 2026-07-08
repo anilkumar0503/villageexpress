@@ -168,7 +168,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <img src="/logo.jpeg" alt="Village Express" className="w-8 h-8 rounded-lg" />
+          <img src="/logo.png" alt="Village Express" className="w-8 h-8 rounded-lg" />
           <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <img src="/logo.jpeg" alt="Village Express" className="w-8 h-8 rounded-lg" />
+          <img src="/logo.png" alt="Village Express" className="w-8 h-8 rounded-lg" />
           <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-5">
-        <img src="/logo.jpeg" alt="Village Express" className="w-8 h-8 rounded-lg" />
+        <img src="/logo.png" alt="Village Express" className="w-8 h-8 rounded-lg" />
         <span className="font-semibold text-sm">Village Express</span>
       </div>
 
