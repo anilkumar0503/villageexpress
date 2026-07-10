@@ -8,7 +8,6 @@ const updateSchema = z.object({
   district: z.string().min(1).optional(),
   mandal: z.string().optional(),
   village: z.string().min(1).optional(),
-  pointName: z.string().min(1).optional(),
   pincode: z.string().length(6).optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),

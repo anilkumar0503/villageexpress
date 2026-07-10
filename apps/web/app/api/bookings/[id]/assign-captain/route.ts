@@ -203,7 +203,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       where: { id },
       include: {
         customer: { select: { name: true, email: true } },
-        pickupLocation: { select: { pointName: true } },
+        pickupLocation: { select: { pointName: true, village: true } },
         captain: { select: { name: true, email: true } },
       },
     })
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       sendCaptainAssignedEmail(bookingWithEmails.customer.email, bookingWithEmails.customer.name, bookingWithEmails.bookingNumber, bookingWithEmails.captain?.name ?? 'Captain').catch(() => {})
     }
     if (bookingWithEmails?.captain?.email) {
-      sendCaptainAssignmentEmail(bookingWithEmails.captain.email, bookingWithEmails.captain.name, bookingWithEmails.bookingNumber, bookingWithEmails.pickupLocation.pointName).catch(() => {})
+      sendCaptainAssignmentEmail(bookingWithEmails.captain.email, bookingWithEmails.captain.name, bookingWithEmails.bookingNumber, bookingWithEmails.pickupLocation.pointName ?? bookingWithEmails.pickupLocation.village).catch(() => {})
     }
 
     return NextResponse.json({ success: true, data: updated })

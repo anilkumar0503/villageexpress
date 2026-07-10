@@ -136,7 +136,7 @@ export default function LocationsPage() {
 
   const filtered = locations.filter((l) =>
     !search ||
-    l.pointName.toLowerCase().includes(search.toLowerCase()) ||
+    (l.pointName && l.pointName.toLowerCase().includes(search.toLowerCase())) ||
     l.village.toLowerCase().includes(search.toLowerCase()) ||
     l.district.toLowerCase().includes(search.toLowerCase()) ||
     l.state.toLowerCase().includes(search.toLowerCase())
@@ -186,7 +186,7 @@ export default function LocationsPage() {
             <TableBody>
               {filtered.map((loc) => (
                 <TableRow key={loc.id}>
-                  <TableCell className="font-medium">{loc.pointName}</TableCell>
+                  <TableCell className="font-medium">{loc.pointName || loc.village}</TableCell>
                   <TableCell>
                     <p>{loc.village}</p>
                     <p className="text-xs text-muted-foreground">{loc.district}</p>

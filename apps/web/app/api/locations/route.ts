@@ -8,7 +8,6 @@ const createSchema = z.object({
   district: z.string().min(1),
   mandal: z.string().optional(),
   village: z.string().min(1),
-  pointName: z.string().min(1),
   pincode: z.string().length(6),
   latitude: z.number(),
   longitude: z.number(),

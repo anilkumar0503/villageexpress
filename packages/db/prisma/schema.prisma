@@ -185,7 +185,7 @@ model Location {
   district     String
   mandal       String?
   village      String
-  pointName    String
+  pointName    String?
   pincode      String
   latitude     Decimal
   longitude    Decimal

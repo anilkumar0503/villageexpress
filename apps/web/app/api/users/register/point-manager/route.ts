@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
     // Check if location already exists
     const existingLocation = await prisma.location.findFirst({
       where: {
-        pointName: location.pointName,
         village: location.village,
         district: location.district,
       },
@@ -67,7 +66,6 @@ export async function POST(req: NextRequest) {
     // Create new location
     const newLocation = await prisma.location.create({
       data: {
-        pointName: location.pointName,
         village: location.village,
         district: location.district,
         state: location.state,

@@ -475,9 +475,9 @@ export async function POST(req: NextRequest) {
       if (pm?.email) {
         const pickupLoc = await prisma.location.findUnique({
           where: { id: pickupLocationId },
-          select: { pointName: true },
+          select: { pointName: true, village: true },
         })
-        sendNewBookingToPM(pm.email, pm.name, booking.bookingNumber, pickupLoc?.pointName || '').catch(() => {})
+        sendNewBookingToPM(pm.email, pm.name, booking.bookingNumber, pickupLoc?.pointName || pickupLoc?.village || '').catch(() => {})
       }
     }
 
