@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
         ticketNumber: ticket.ticketNumber,
         userName: ticket.user.name,
         userEmail: ticket.user.email,
-        userPhone: ticket.user.phone,
+        userPhone: ticket.user.phone ?? '',
         subject: ticket.subject,
         category: ticket.category,
         priority: ticket.priority,

@@ -7,7 +7,7 @@ export type SessionUser = {
   displayId: string
   name: string
   email: string | null
-  phone: string
+  phone: string | null
   roles: string[]
   permissions: string[]
 }
@@ -71,7 +71,7 @@ export async function getSessionUser(userId: string): Promise<SessionUser | null
     displayId: user.displayId,
     name: user.name,
     email: user.email ?? null,
-    phone: user.phone,
+    phone: user.phone ?? null,
     roles,
     permissions,
   }

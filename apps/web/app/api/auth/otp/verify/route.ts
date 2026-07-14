@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
           displayId,
           name: email.split('@')[0],
           email,
-          phone: '',
           approvalStatus: 'APPROVED',
           isActive: true,
           userRoles: customerRole

@@ -215,7 +215,7 @@ model User {
   displayId       String         @unique
   name            String
   email           String?        @unique
-  phone           String         @unique
+  phone           String?        @unique
   password        String?
   approvalStatus  ApprovalStatus @default(PENDING)
   isActive        Boolean        @default(true)

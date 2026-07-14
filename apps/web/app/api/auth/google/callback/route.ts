@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
           displayId: `VE-GO-${Date.now().toString(36).toUpperCase()}`,
           name: googleUser.name,
           email: googleUser.email,
-          phone: '', // Will need to be filled later
           approvalStatus: 'APPROVED',
           isActive: true,
         },
