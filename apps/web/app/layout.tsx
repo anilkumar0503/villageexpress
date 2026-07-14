@@ -8,7 +8,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.villageexpress.in";
+const _rawUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+const APP_URL = _rawUrl.startsWith("http") ? _rawUrl : "https://www.villageexpress.in"
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
