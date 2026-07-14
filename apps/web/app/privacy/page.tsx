@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PublicHeader } from '@/components/public-header'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Read the Village Express Privacy Policy to understand how we collect, use, and protect your personal data.',
+  alternates: { canonical: '/privacy' },
+}
 
 export default function PrivacyPage() {
   return (

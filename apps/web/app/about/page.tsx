@@ -1,6 +1,18 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Target, Users, Award, Heart } from 'lucide-react'
 import { PublicHeader } from '@/components/public-header'
+
+export const metadata: Metadata = {
+  title: 'About Us',
+  description: 'Learn about Village Express — our mission to connect rural India through fast, reliable, and affordable parcel delivery services across villages and towns.',
+  openGraph: {
+    title: 'About Us | Village Express',
+    description: 'Learn about Village Express — our mission to connect rural India through fast, reliable, and affordable parcel delivery.',
+    url: '/about',
+  },
+  alternates: { canonical: '/about' },
+}
 
 export default function AboutPage() {
   return (

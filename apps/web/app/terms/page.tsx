@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PublicHeader } from '@/components/public-header'
+
+export const metadata: Metadata = {
+  title: 'Terms & Conditions',
+  description: 'Read the Terms and Conditions for using Village Express parcel delivery services.',
+  alternates: { canonical: '/terms' },
+}
 
 export default function TermsPage() {
   return (
