@@ -22,6 +22,12 @@ export async function getSession(req?: Request): Promise<AccessTokenPayload | nu
     if (req) {
       const authHeader = req.headers.get('authorization')
       token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
+
+      if (!token) {
+        const cookieHeader = req.headers.get('cookie') ?? ''
+        const match = cookieHeader.match(/(?:^|;\s*)access_token=([^;]+)/)
+        token = match ? decodeURIComponent(match[1]) : undefined
+      }
     } else {
       const cookieStore = await cookies()
       token = cookieStore.get('access_token')?.value
