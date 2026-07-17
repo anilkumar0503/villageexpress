@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Loader2, User, CheckCircle2, XCircle, Clock, Eye, Edit, MoreHorizontal, MapPin, Save, X, Image as ImageIcon, RefreshCw } from 'lucide-react'
+import { Search, Loader2, User, CheckCircle2, XCircle, Clock, Eye, Edit, MapPin, Save, X, Image as ImageIcon, RefreshCw, ChevronLeft, ChevronRight, Users, Truck, Store, Shield } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/use-auth'
 
 type User = {
@@ -72,7 +73,7 @@ export default function UsersPage() {
   const [approvalFilter, setApprovalFilter] = useState('ALL')
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const pageSize = 50
+  const pageSize = 20
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -424,28 +425,85 @@ export default function UsersPage() {
       .finally(() => setLoading(false))
   }, [debouncedSearch, roleFilter, approvalFilter, page, accessToken])
 
+  const totalPages = Math.ceil(total / pageSize)
+
+  const ROLE_TABS = [
+    { value: 'ALL', label: 'All', icon: Users },
+    { value: 'CUSTOMER', label: 'Customers', icon: User },
+    { value: 'CAPTAIN', label: 'Captains', icon: Truck },
+    { value: 'POINT_MANAGER', label: 'Point Managers', icon: Store },
+    { value: 'ADMIN', label: 'Admins', icon: Shield },
+    { value: 'SUPER_ADMIN', label: 'Super Admins', icon: Shield },
+    { value: 'FRANCHISE_OWNER', label: 'Franchise', icon: Shield },
+  ]
+
+  const ActionButtons = ({ user, role }: { user: User; role: string }) => (
+    <div className="flex items-center gap-1">
+      <Button variant="ghost" size="sm" onClick={() => setSelectedUser(user)} title="View details">
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => openEditUser(user)} title="Edit user">
+        <Edit className="h-4 w-4" />
+      </Button>
+      {role === 'POINT_MANAGER' && (
+        <Button variant="ghost" size="sm" onClick={() => openPMLocationEditor(user)} title="Edit location">
+          <MapPin className="h-4 w-4" />
+        </Button>
+      )}
+      {role === 'CAPTAIN' && (
+        <>
+          <Button variant="ghost" size="sm" onClick={() => openCaptainPointsEditor(user)} title="Edit points">
+            <MapPin className="h-4 w-4" />
+          </Button>
+          {user.captainProfile?.availabilityStatus === 'BUSY' && (
+            <Button variant="ghost" size="sm" onClick={() => resetCaptainAvailability(user.id)} disabled={resettingAvailability === user.id} title="Reset availability">
+              {resettingAvailability === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          )}
+        </>
+      )}
+    </div>
+  )
+
+  const StatusCell = ({ user }: { user: User }) => {
+    const ApprovalIcon = APPROVAL_ICONS[user.approvalStatus] ?? Clock
+    return (
+      <div className="flex items-center gap-1.5">
+        <ApprovalIcon className={`h-4 w-4 ${APPROVAL_COLORS[user.approvalStatus]}`} />
+        <span className={`text-xs font-medium ${APPROVAL_COLORS[user.approvalStatus]}`}>{user.approvalStatus}</span>
+        {!user.isActive && <Badge variant="secondary" className="text-xs ml-1">Inactive</Badge>}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6" data-testid="users-page">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">Users</h1>
-        <p className="text-sm text-muted-foreground mt-1" data-testid="total-count">{total} total user{total !== 1 ? 's' : ''}</p>
+    <div className="space-y-5" data-testid="users-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{total} total user{total !== 1 ? 's' : ''}</p>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3" data-testid="filters">
+      {/* Role Tabs */}
+      <Tabs value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setPage(1) }}>
+        <TabsList className="h-auto flex-wrap gap-1 bg-muted/50 p-1">
+          {ROLE_TABS.map(({ value, label, icon: Icon }) => (
+            <TabsTrigger key={value} value={value} className="flex items-center gap-1.5 text-xs sm:text-sm">
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Search + Approval Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name, email, phone, ID..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} data-testid="search-input" />
+          <Input placeholder="Search by name, email, phone, ID..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter} data-testid="role-filter">
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Roles</SelectItem>
-            {['SUPER_ADMIN', 'ADMIN', 'FRANCHISE_OWNER', 'POINT_MANAGER', 'CAPTAIN', 'CUSTOMER'].map((r) => (
-              <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={approvalFilter} onValueChange={setApprovalFilter} data-testid="approval-filter">
+        <Select value={approvalFilter} onValueChange={(v) => { setApprovalFilter(v); setPage(1) }}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Status</SelectItem>
@@ -456,23 +514,165 @@ export default function UsersPage() {
         </Select>
       </div>
 
-      <Card data-testid="users-table-card">
+      <Card>
         {loading ? (
-          <CardContent className="flex items-center justify-center h-48" data-testid="loading-state">
+          <CardContent className="flex items-center justify-center h-48">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </CardContent>
         ) : users.length === 0 ? (
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <User className="h-10 w-10 text-muted-foreground mb-3" />
             <p className="font-medium">No users found</p>
+            <p className="text-sm text-muted-foreground mt-1">Try adjusting the search or filter</p>
           </CardContent>
+        ) : roleFilter === 'CAPTAIN' ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Captain</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Assigned Points</TableHead>
+                <TableHead>Availability</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{user.displayId}</p>
+                      <p className="text-xs text-muted-foreground">{user.phone}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{(user.userRoles?.[0]?.role?.name ?? '—').replace(/_/g, ' ')}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.captainProfile ? (
+                      <div>
+                        <Badge variant="outline" className="text-xs mb-1">{user.captainProfile.vehicleType}</Badge>
+                        <p className="text-xs text-muted-foreground font-mono">{user.captainProfile.vehicleNumber || '—'}</p>
+                      </div>
+                    ) : <span className="text-muted-foreground text-sm">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {user.captainProfile?.pointAssignments?.length ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {user.captainProfile.pointAssignments.slice(0, 3).map((pa) => (
+                          <Badge key={pa.locationId} variant="secondary" className="text-xs">
+                            {pa.location.village}
+                          </Badge>
+                        ))}
+                        {user.captainProfile.pointAssignments.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">+{user.captainProfile.pointAssignments.length - 3} more</Badge>
+                        )}
+                      </div>
+                    ) : <span className="text-muted-foreground text-sm">Not assigned</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.captainProfile?.availabilityStatus === 'AVAILABLE' ? 'default' : 'secondary'} className="text-xs">
+                      {user.captainProfile?.availabilityStatus ?? '—'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell><StatusCell user={user} /></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('en-IN')}</TableCell>
+                  <TableCell><ActionButtons user={user} role="CAPTAIN" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : roleFilter === 'POINT_MANAGER' ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Point Manager</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Shop Location</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{user.displayId}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{(user.userRoles?.[0]?.role?.name ?? '—').replace(/_/g, ' ')}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.pointManagerProfile?.shopLocation ? (
+                      <div>
+                        <p className="text-sm font-medium">{user.pointManagerProfile.shopLocation.pointName || user.pointManagerProfile.shopLocation.village}</p>
+                        <p className="text-xs text-muted-foreground">{user.pointManagerProfile.shopLocation.village}, {user.pointManagerProfile.shopLocation.district}</p>
+                      </div>
+                    ) : <span className="text-muted-foreground text-sm">Not assigned</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <p>{user.email || '—'}</p>
+                      <p className="text-muted-foreground">{user.phone || '—'}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell><StatusCell user={user} /></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('en-IN')}</TableCell>
+                  <TableCell><ActionButtons user={user} role="POINT_MANAGER" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : roleFilter === 'CUSTOMER' ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{user.displayId}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{(user.userRoles?.[0]?.role?.name ?? '—').replace(/_/g, ' ')}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{user.email || '—'}</TableCell>
+                  <TableCell className="text-sm">{user.phone || '—'}</TableCell>
+                  <TableCell><StatusCell user={user} /></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('en-IN')}</TableCell>
+                  <TableCell><ActionButtons user={user} role="CUSTOMER" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
-          <Table data-testid="users-table">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Location/Details</TableHead>
+                <TableHead>Details</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
@@ -482,9 +682,8 @@ export default function UsersPage() {
             <TableBody>
               {users.map((user) => {
                 const role = user.userRoles?.[0]?.role?.name ?? '—'
-                const ApprovalIcon = APPROVAL_ICONS[user.approvalStatus] ?? Clock
                 return (
-                  <TableRow key={user.id} data-testid={`user-row-${user.id}`}>
+                  <TableRow key={user.id}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{user.name}</p>
@@ -498,79 +697,29 @@ export default function UsersPage() {
                       <div className="text-sm">
                         {role === 'POINT_MANAGER' && user.pointManagerProfile?.shopLocation ? (
                           <div>
-                            <p className="font-medium">{user.pointManagerProfile.shopLocation.pointName}</p>
+                            <p className="font-medium">{user.pointManagerProfile.shopLocation.pointName || user.pointManagerProfile.shopLocation.village}</p>
                             <p className="text-xs text-muted-foreground">{user.pointManagerProfile.shopLocation.village}, {user.pointManagerProfile.shopLocation.district}</p>
                           </div>
                         ) : role === 'CAPTAIN' && user.captainProfile ? (
                           <div>
                             <p className="font-medium">{user.captainProfile.vehicleType}</p>
                             <p className="text-xs text-muted-foreground">{user.captainProfile.vehicleNumber}</p>
-                            {user.captainProfile.pointAssignments && user.captainProfile.pointAssignments.length > 0 && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {user.captainProfile.pointAssignments.length} point{user.captainProfile.pointAssignments.length !== 1 ? 's' : ''}
-                              </p>
-                            )}
+                            {user.captainProfile.pointAssignments?.length ? (
+                              <p className="text-xs text-muted-foreground">{user.captainProfile.pointAssignments.length} point{user.captainProfile.pointAssignments.length !== 1 ? 's' : ''}</p>
+                            ) : null}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        ) : <span className="text-muted-foreground">—</span>}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <p>{user.email}</p>
-                        <p className="text-muted-foreground">{user.phone}</p>
+                        <p>{user.email || '—'}</p>
+                        <p className="text-muted-foreground">{user.phone || '—'}</p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <ApprovalIcon className={`h-4 w-4 ${APPROVAL_COLORS[user.approvalStatus]}`} />
-                        <span className={`text-xs font-medium ${APPROVAL_COLORS[user.approvalStatus]}`}>
-                          {user.approvalStatus}
-                        </span>
-                        {!user.isActive && <Badge variant="secondary" className="text-xs ml-1">Inactive</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString('en-IN')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedUser(user)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {role === 'POINT_MANAGER' && (
-                          <Button variant="ghost" size="sm" onClick={() => openPMLocationEditor(user)}>
-                            <MapPin className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {role === 'CAPTAIN' && (
-                          <>
-                            <Button variant="ghost" size="sm" onClick={() => openCaptainPointsEditor(user)}>
-                              <MapPin className="h-4 w-4" />
-                            </Button>
-                            {user.captainProfile?.availabilityStatus === 'BUSY' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => resetCaptainAvailability(user.id)}
-                                disabled={resettingAvailability === user.id}
-                                title="Reset availability to AVAILABLE"
-                              >
-                                {resettingAvailability === user.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell><StatusCell user={user} /></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('en-IN')}</TableCell>
+                    <TableCell><ActionButtons user={user} role={role} /></TableCell>
                   </TableRow>
                 )
               })}
@@ -954,27 +1103,46 @@ export default function UsersPage() {
       </Dialog>
 
       {/* Pagination */}
-      {total > pageSize && (
-        <div className="flex items-center justify-between gap-4">
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, total)} of {total} users
+            Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total} user{total !== 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(1)} disabled={page === 1} title="First page">
+              <ChevronLeft className="h-3 w-3" /><ChevronLeft className="h-3 w-3 -ml-2" />
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(Math.ceil(total / pageSize), p + 1))}
-              disabled={page === Math.ceil(total / pageSize)}
-            >
-              Next
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => p - 1)} disabled={page === 1} title="Previous page">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum: number
+              if (totalPages <= 5) {
+                pageNum = i + 1
+              } else if (page <= 3) {
+                pageNum = i + 1
+              } else if (page >= totalPages - 2) {
+                pageNum = totalPages - 4 + i
+              } else {
+                pageNum = page - 2 + i
+              }
+              return (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === page ? 'default' : 'outline'}
+                  size="icon"
+                  className="h-8 w-8 text-xs"
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              )
+            })}
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => p + 1)} disabled={page === totalPages} title="Next page">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(totalPages)} disabled={page === totalPages} title="Last page">
+              <ChevronRight className="h-3 w-3" /><ChevronRight className="h-3 w-3 -ml-2" />
             </Button>
           </div>
         </div>
