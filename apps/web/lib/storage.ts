@@ -55,6 +55,8 @@ function createS3Client(): S3Client | null {
     endpoint,
     credentials: { accessKeyId, secretAccessKey },
     forcePathStyle: false,
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   })
 }
 

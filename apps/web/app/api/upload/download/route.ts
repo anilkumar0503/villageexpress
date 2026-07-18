@@ -19,27 +19,28 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const fileKey = searchParams.get('fileKey')
   const bucket = (searchParams.get('bucket') ?? 'private') as UploadBucket
+  const returnJson = searchParams.get('json') === '1'
 
   if (!fileKey) {
     return NextResponse.json({ success: false, error: 'fileKey is required' }, { status: 400 })
   }
 
-  // Already a full URL (public Linode CDN or external) → redirect directly
+  let resolvedUrl: string
+
+  // Already a full URL (public Linode CDN or external) → use directly
   if (fileKey.startsWith('https://') || fileKey.startsWith('http://')) {
-    return NextResponse.redirect(fileKey)
+    resolvedUrl = fileKey
+  } else if (fileKey.startsWith('/')) {
+    // Local upload path
+    resolvedUrl = new URL(fileKey, req.url).toString()
+  } else {
+    // Bare fileKey → generate presigned GET URL
+    const presignedUrl = await getPresignedDownloadUrl(fileKey, bucket)
+    resolvedUrl = presignedUrl ?? new URL(`/uploads/${fileKey}`, req.url).toString()
   }
 
-  // Local upload path → redirect directly
-  if (fileKey.startsWith('/')) {
-    return NextResponse.redirect(new URL(fileKey, req.url))
+  if (returnJson) {
+    return NextResponse.json({ success: true, url: resolvedUrl })
   }
-
-  // Bare fileKey (stored from private Linode bucket) → generate presigned GET URL
-  const presignedUrl = await getPresignedDownloadUrl(fileKey, bucket)
-  if (presignedUrl) {
-    return NextResponse.redirect(presignedUrl)
-  }
-
-  // Linode not configured — assume local path as fallback
-  return NextResponse.redirect(new URL(`/uploads/${fileKey}`, req.url))
+  return NextResponse.redirect(resolvedUrl)
 }

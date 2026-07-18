@@ -65,6 +65,14 @@ export default function ApprovalsPage() {
   const [roleTab, setRoleTab] = useState('ALL')
   const [page, setPage] = useState(1)
 
+  async function openFile(fileKey: string, bucket: 'public' | 'private') {
+    const res = await fetch(`/api/upload/download?fileKey=${encodeURIComponent(fileKey)}&bucket=${bucket}&json=1`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    const data = await res.json()
+    if (data.success) window.open(data.url, '_blank')
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   async function fetchUsers() {
@@ -242,15 +250,15 @@ export default function ApprovalsPage() {
                           <span className="text-sm font-medium">Shop Photo</span>
                         </div>
                         {user.pointManagerProfile.shopPhoto ? (
-                          <a
-                            href={`/api/upload/download?fileKey=${encodeURIComponent(user.pointManagerProfile.shopPhoto)}&bucket=public`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary border border-primary/30 rounded px-3 py-1.5 hover:bg-primary/5 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => openFile(user.pointManagerProfile!.shopPhoto!, 'public')}
                           >
                             <ImageIcon className="h-4 w-4" />
                             View Shop Photo
-                          </a>
+                          </Button>
                         ) : (
                           <p className="text-xs text-muted-foreground italic">No photo uploaded</p>
                         )}
@@ -314,15 +322,15 @@ export default function ApprovalsPage() {
                             )}
                           </div>
                           {user.captainProfile?.aadhaarPhoto ? (
-                            <a
-                              href={`/api/upload/download?fileKey=${encodeURIComponent(user.captainProfile.aadhaarPhoto)}&bucket=private`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary border border-primary/30 rounded px-3 py-1.5 hover:bg-primary/5 transition-colors"
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => openFile(user.captainProfile!.aadhaarPhoto!, 'private')}
                             >
                               <ImageIcon className="h-4 w-4" />
                               View Aadhaar Photo
-                            </a>
+                            </Button>
                           ) : (
                             <p className="text-xs text-muted-foreground italic flex items-center gap-1.5">
                               <ImageIcon className="h-3.5 w-3.5" />
@@ -359,15 +367,15 @@ export default function ApprovalsPage() {
                             )}
                           </div>
                           {user.captainProfile?.licensePhoto ? (
-                            <a
-                              href={`/api/upload/download?fileKey=${encodeURIComponent(user.captainProfile.licensePhoto)}&bucket=private`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary border border-primary/30 rounded px-3 py-1.5 hover:bg-primary/5 transition-colors"
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => openFile(user.captainProfile!.licensePhoto!, 'private')}
                             >
                               <ImageIcon className="h-4 w-4" />
                               View License Photo
-                            </a>
+                            </Button>
                           ) : (
                             <p className="text-xs text-muted-foreground italic flex items-center gap-1.5">
                               <ImageIcon className="h-3.5 w-3.5" />

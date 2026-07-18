@@ -59,11 +59,15 @@ export function FileUpload({ folder, accept = 'image/jpeg,image/png,image/webp',
         if (!uploadData.success) throw new Error(uploadData.error)
       } else {
         // Use S3 presigned URL
-        await fetch(uploadUrl, {
+        const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           headers: { 'Content-Type': file.type },
           body: file,
         })
+        if (!uploadRes.ok) {
+          const text = await uploadRes.text().catch(() => '')
+          throw new Error(`Upload failed (${uploadRes.status})${text ? ': ' + text.slice(0, 200) : ''}`)
+        }
       }
 
       if (file.type.startsWith('image/')) {
