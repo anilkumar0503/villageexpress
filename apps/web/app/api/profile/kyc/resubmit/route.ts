@@ -6,7 +6,7 @@ import { requireAuth } from '@/lib/auth/permissions'
 const resubmitSchema = z.object({
   documentType: z.enum(['AADHAAR', 'LICENSE']),
   documentNumber: z.string().optional(),
-  documentPhoto: z.string().url().optional(),
+  documentPhoto: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
