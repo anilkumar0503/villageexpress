@@ -18,18 +18,30 @@ type PendingUser = {
   isActive: boolean
   createdAt: string
   userRoles: { role: { name: string }; isPrimary: boolean }[]
-  pointManagerProfile: { shopName: string; shopPhoto: string | null } | null
+  pointManagerProfile: {
+    shopName: string
+    shopPhoto: string | null
+    shopLocation: {
+      pointName: string | null
+      village: string
+      district: string
+      state: string
+      pincode: string
+    } | null
+  } | null
   captainProfile: {
     id: string
-    vehicleType: string
-    vehicleNumber: string
-    aadhaarNumber: string
+    vehicleType: string | null
+    vehicleNumber: string | null
+    aadhaarNumber: string | null
     aadhaarPhoto: string | null
+    drivingLicense: string | null
     licensePhoto: string | null
     aadhaarVerificationStatus: string
     licenseVerificationStatus: string
     aadhaarRejectionReason: string | null
     licenseRejectionReason: string | null
+    onboardingStatus: string | null
   } | null
 }
 
@@ -193,26 +205,83 @@ export default function ApprovalsPage() {
 
                 <CardContent className="space-y-3">
                   {isPM && user.pointManagerProfile && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      <span>Shop: <span className="text-foreground font-medium">{user.pointManagerProfile.shopName}</span></span>
-                    </div>
-                  )}
-
-                  {isPM && user.pointManagerProfile?.shopPhoto && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Shop Photo</p>
-                      <a href={`/api/upload/download?fileKey=${encodeURIComponent(user.pointManagerProfile.shopPhoto!)}&bucket=public`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                        <ImageIcon className="h-4 w-4" />
-                        View Photo
-                      </a>
+                    <div className="space-y-3">
+                      {/* Shop Details */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Shop Name</span>
+                          <span className="font-medium">{user.pointManagerProfile.shopName}</span>
+                        </div>
+                        {user.pointManagerProfile.shopLocation?.pointName && (
+                          <div>
+                            <span className="text-xs text-muted-foreground block">Point Name</span>
+                            <span className="font-medium">{user.pointManagerProfile.shopLocation.pointName}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Village</span>
+                          <span className="font-medium">{user.pointManagerProfile.shopLocation?.village ?? '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">District</span>
+                          <span className="font-medium">{user.pointManagerProfile.shopLocation?.district ?? '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">State</span>
+                          <span className="font-medium">{user.pointManagerProfile.shopLocation?.state ?? '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Pincode</span>
+                          <span className="font-medium">{user.pointManagerProfile.shopLocation?.pincode ?? '—'}</span>
+                        </div>
+                      </div>
+                      {/* Shop Photo */}
+                      <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Shop Photo</span>
+                        </div>
+                        {user.pointManagerProfile.shopPhoto ? (
+                          <a
+                            href={`/api/upload/download?fileKey=${encodeURIComponent(user.pointManagerProfile.shopPhoto)}&bucket=public`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary border border-primary/30 rounded px-3 py-1.5 hover:bg-primary/5 transition-colors"
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                            View Shop Photo
+                          </a>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No photo uploaded</p>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {isCaptain && user.captainProfile && (
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div><span className="text-muted-foreground">Vehicle:</span> {user.captainProfile.vehicleType} &middot; {user.captainProfile.vehicleNumber}</div>
-                      <div><span className="text-muted-foreground">Aadhaar:</span> ****{user.captainProfile.aadhaarNumber ? user.captainProfile.aadhaarNumber.slice(-4) : 'N/A'}</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Vehicle Type</span>
+                        <span className="font-medium">{user.captainProfile.vehicleType ?? '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Vehicle Number</span>
+                        <span className="font-medium">{user.captainProfile.vehicleNumber ?? '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Aadhaar Number</span>
+                        <span className="font-medium">{user.captainProfile.aadhaarNumber ? `****${user.captainProfile.aadhaarNumber.slice(-4)}` : '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Driving License No.</span>
+                        <span className="font-medium">{user.captainProfile.drivingLicense ?? '—'}</span>
+                      </div>
+                      {user.captainProfile.onboardingStatus && (
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Onboarding</span>
+                          <Badge variant="outline" className="text-xs mt-0.5">{user.captainProfile.onboardingStatus.replace(/_/g, ' ')}</Badge>
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -46,11 +46,15 @@ export async function GET(req: NextRequest) {
         userRoles: { select: { role: { select: { name: true } }, isPrimary: true } },
         pointManagerProfile: {
           select: {
+            shopName: true,
+            shopPhoto: true,
             shopLocation: {
               select: {
                 pointName: true,
                 village: true,
                 district: true,
+                state: true,
+                pincode: true,
               },
             },
           },
@@ -62,6 +66,8 @@ export async function GET(req: NextRequest) {
             vehicleNumber: true,
             aadhaarNumber: true,
             aadhaarPhoto: true,
+            // @ts-ignore
+            drivingLicense: true,
             licensePhoto: true,
             // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
             aadhaarVerificationStatus: true,
@@ -71,6 +77,8 @@ export async function GET(req: NextRequest) {
             aadhaarRejectionReason: true,
             // @ts-ignore - these fields exist in DB but TypeScript needs client regeneration
             licenseRejectionReason: true,
+            // @ts-ignore
+            onboardingStatus: true,
             districtId: true,
             pointAssignments: {
               where: { isActive: true },
