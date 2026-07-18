@@ -143,12 +143,12 @@ export default function ScanPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Scanner element always rendered */}
-          <div 
-            ref={readerRef} 
-            id="reader" 
-            className="w-full rounded-lg overflow-hidden" 
-            style={{ minHeight: scanning ? '300px' : '0px', display: scanning ? 'block' : 'none' }} 
+          {/* Scanner element always rendered with dimensions for mobile camera init */}
+          <div
+            ref={readerRef}
+            id="reader"
+            className="w-full rounded-lg overflow-hidden"
+            style={{ minHeight: '300px', visibility: scanning ? 'visible' : 'hidden' }}
           />
 
           {!scanning ? (

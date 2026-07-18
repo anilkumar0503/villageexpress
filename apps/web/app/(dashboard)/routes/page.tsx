@@ -378,7 +378,7 @@ export default function RoutesPage() {
 
   const locLabel = (id: string) => {
     const l = allLocations.find((x) => x.id === id)
-    return l ? `${l.pointName} — ${l.district}` : id
+    return l ? `${l.pointName} (${l.village}) — ${l.district}` : id
   }
 
   return (
@@ -611,14 +611,14 @@ export default function RoutesPage() {
                 <Label className="text-xs">Source Location</Label>
                 <Select value={editSourceId} onValueChange={setEditSourceId}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} — {l.district}</SelectItem>)}</SelectContent>
+                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Destination Location</Label>
                 <Select value={editDestId} onValueChange={setEditDestId}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} — {l.district}</SelectItem>)}</SelectContent>
+                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
@@ -644,14 +644,14 @@ export default function RoutesPage() {
                   <Label className="text-xs">From</Label>
                   <Select value={seg.fromLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))}>
                     <SelectTrigger className="text-xs"><SelectValue placeholder="From" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName}</SelectItem>)}</SelectContent>
+                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">To</Label>
                   <Select value={seg.toLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))}>
                     <SelectTrigger className="text-xs"><SelectValue placeholder="To" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName}</SelectItem>)}</SelectContent>
+                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
@@ -695,14 +695,14 @@ export default function RoutesPage() {
                 <Label className="text-xs">Source Location</Label>
                 <Select value={sourceLocationId} onValueChange={setSourceLocationId}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} — {l.district}</SelectItem>)}</SelectContent>
+                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Destination Location</Label>
                 <Select value={destLocationId} onValueChange={setDestLocationId}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} — {l.district}</SelectItem>)}</SelectContent>
+                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
@@ -728,14 +728,14 @@ export default function RoutesPage() {
                   <Label className="text-xs">From</Label>
                   <Select value={seg.fromLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))}>
                     <SelectTrigger className="text-xs"><SelectValue placeholder="From" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName}</SelectItem>)}</SelectContent>
+                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">To</Label>
                   <Select value={seg.toLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))}>
                     <SelectTrigger className="text-xs"><SelectValue placeholder="To" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName}</SelectItem>)}</SelectContent>
+                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
