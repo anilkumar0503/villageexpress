@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const locationId = user?.pointManagerProfile?.shopLocationId
 
   if (!locationId) {
-    return NextResponse.json({ success: false, error: 'Point manager has no shop location assigned' }, { status: 400 })
+    return NextResponse.json({ success: true, data: { data: [] } })
   }
 
   // Calculate date range based on period

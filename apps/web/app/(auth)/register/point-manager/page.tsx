@@ -195,7 +195,7 @@ export default function PointManagerRegisterPage() {
             <FileUpload
               folder="shop-photos"
               accept="image/jpeg,image/png,image/webp"
-              label="Shop Photo (required)"
+              label="Shop Photo (optional)"
               onUploadComplete={(url) => set('shopPhoto', url)}
             />
           </CardContent>

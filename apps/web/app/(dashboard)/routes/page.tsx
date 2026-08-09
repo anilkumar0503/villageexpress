@@ -16,13 +16,6 @@ import { useAuth } from '@/hooks/use-auth'
 
 type LocationOption = { id: string; pointName: string; village: string; district: string; state: string }
 
-type Segment = {
-  fromLocationId: string
-  toLocationId: string
-  distanceKm: string
-  estimatedHours: string
-}
-
 type PricingRuleForm = {
   basePrice: string
   pricePerKm: string
@@ -61,7 +54,6 @@ type RouteRecord = {
   }>
 }
 
-const EMPTY_SEGMENT: Segment = { fromLocationId: '', toLocationId: '', distanceKm: '', estimatedHours: '' }
 const EMPTY_PRICING: PricingRuleForm = { basePrice: '', pricePerKm: '', weightSurcharge: '0', priority: 'STANDARD', vehicleType: '' }
 
 export default function RoutesPage() {
@@ -79,7 +71,6 @@ export default function RoutesPage() {
   const [editSourceId, setEditSourceId] = useState('')
   const [editDestId, setEditDestId] = useState('')
   const [editDays, setEditDays] = useState('')
-  const [editSegments, setEditSegments] = useState<Segment[]>([{ ...EMPTY_SEGMENT }])
   const [editError, setEditError] = useState('')
   const [editRuleDialogOpen, setEditRuleDialogOpen] = useState(false)
   const [editingPricingRule, setEditingPricingRule] = useState<RouteRecord['pricingRules'][0] | null>(null)
@@ -101,7 +92,6 @@ export default function RoutesPage() {
   const [sourceLocationId, setSourceLocationId] = useState('')
   const [destLocationId, setDestLocationId] = useState('')
   const [estimatedDays, setEstimatedDays] = useState('2')
-  const [segments, setSegments] = useState<Segment[]>([{ ...EMPTY_SEGMENT }])
   const [pricingRules, setPricingRules] = useState<PricingRuleForm[]>([{ ...EMPTY_PRICING }])
 
   useEffect(() => {
@@ -128,7 +118,6 @@ export default function RoutesPage() {
 
   function resetForm() {
     setName(''); setSourceLocationId(''); setDestLocationId(''); setEstimatedDays('2')
-    setSegments([{ ...EMPTY_SEGMENT }])
     setPricingRules([{ ...EMPTY_PRICING }])
     setError('')
   }
@@ -154,8 +143,6 @@ export default function RoutesPage() {
   async function handleSave() {
     if (!name.trim()) return setError('Route name is required')
     if (!sourceLocationId || !destLocationId) return setError('Source and destination locations are required')
-    if (segments.some((s: any) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
-      return setError('All segment fields are required')
     if (pricingRules.some((r: any) => !r.basePrice || !r.pricePerKm))
       return setError('Base price and price per km are required for all pricing rules')
 
@@ -170,12 +157,6 @@ export default function RoutesPage() {
           destinationLocationId: destLocationId,
           estimatedDays: Number(estimatedDays),
           isActive: true,
-          segments: segments.map((s: any) => ({
-            fromLocationId: s.fromLocationId,
-            toLocationId: s.toLocationId,
-            distanceKm: Number(s.distanceKm),
-            estimatedHours: Number(s.estimatedHours),
-          })),
           pricingRules: pricingRules.map((r: any) => ({
             basePrice: Number(r.basePrice),
             pricePerKm: Number(r.pricePerKm),
@@ -205,14 +186,6 @@ export default function RoutesPage() {
     setEditSourceId(route.sourceLocationId)
     setEditDestId(route.destinationLocationId)
     setEditDays(String(route.estimatedDays))
-    setEditSegments(
-      route.segments.map((seg: any) => ({
-        fromLocationId: seg.fromLocation.id,
-        toLocationId: seg.toLocation.id,
-        distanceKm: String(seg.distanceKm),
-        estimatedHours: String(seg.estimatedHours),
-      }))
-    )
     setEditError('')
     setEditDialogOpen(true)
   }
@@ -220,19 +193,11 @@ export default function RoutesPage() {
   async function handleUpdate() {
     if (!editName.trim()) return setEditError('Route name is required')
     if (!editDays || Number(editDays) < 1) return setEditError('Estimated days must be at least 1')
-    if (editSegments.some((s: any) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
-      return setEditError('All segment fields are required')
     setSaving(true); setEditError('')
     try {
       const body: Record<string, unknown> = {
         name: editName.trim(),
         estimatedDays: Number(editDays),
-        segments: editSegments.map((s: any) => ({
-          fromLocationId: s.fromLocationId,
-          toLocationId: s.toLocationId,
-          distanceKm: Number(s.distanceKm),
-          estimatedHours: Number(s.estimatedHours),
-        })),
       }
       if (editSourceId) body.sourceLocationId = editSourceId
       if (editDestId) body.destinationLocationId = editDestId
@@ -419,7 +384,6 @@ export default function RoutesPage() {
       ) : (
         <div className="space-y-3">
           {routes.map((route) => {
-            const totalDist = route.segments.reduce((s, seg) => s + Number(seg.distanceKm), 0)
             const expanded = expandedId === route.id
             return (
               <Card key={route.id} className={route.isActive ? '' : 'opacity-60'}>
@@ -438,9 +402,7 @@ export default function RoutesPage() {
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className="text-xs">{totalDist}km</Badge>
                       <Badge variant="outline" className="text-xs">{route.estimatedDays}d</Badge>
-                      <Badge variant="outline" className="text-xs">{route.segments.length} segs</Badge>
                       <Badge variant={route.isActive ? 'default' : 'secondary'} className="text-xs">
                         {route.isActive ? 'Active' : 'Inactive'}
                       </Badge>
@@ -460,20 +422,6 @@ export default function RoutesPage() {
                 {expanded && (
                   <CardContent className="pt-0 space-y-4">
                     <Separator />
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Segments</p>
-                      <div className="space-y-1.5">
-                        {route.segments.map((seg: any) => (
-                          <div key={seg.id} className="flex items-center gap-2 text-sm">
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium w-5 text-center">{seg.sequenceOrder}</span>
-                            <span className="flex-1">{seg.fromLocation.pointName} → {seg.toLocation.pointName}</span>
-                            <span className="text-xs text-muted-foreground">{Number(seg.distanceKm)}km</span>
-                            <span className="text-xs text-muted-foreground">{seg.estimatedHours}h</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pricing Rules</p>
@@ -671,41 +619,6 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          <Separator />
-
-          {/* Segments */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Segments</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditSegments((s) => [...s, { ...EMPTY_SEGMENT }])}>
-                <Plus className="h-3.5 w-3.5 mr-1" />Add Segment
-              </Button>
-            </div>
-            {editSegments.map((seg, idx) => (
-              <div key={idx} className="grid grid-cols-5 gap-2 items-end bg-muted/30 rounded-lg p-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">From</Label>
-                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">To</Label>
-                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Distance (km)</Label>
-                  <Input type="number" min="0.1" step="0.1" placeholder="km" value={seg.distanceKm} onChange={(e) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, distanceKm: e.target.value } : x))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Est. Hours</Label>
-                  <Input type="number" min="1" placeholder="hrs" value={seg.estimatedHours} onChange={(e) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, estimatedHours: e.target.value } : x))} />
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive self-end" disabled={editSegments.length === 1} onClick={() => setEditSegments((s) => s.filter((_, i) => i !== idx))}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
           {editError && <p className="text-sm text-destructive">{editError}</p>}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
@@ -741,41 +654,6 @@ export default function RoutesPage() {
                 <Input type="number" min="1" value={estimatedDays} onChange={(e) => setEstimatedDays(e.target.value)} />
               </div>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Segments */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Segments</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => setSegments((s) => [...s, { ...EMPTY_SEGMENT }])}>
-                <Plus className="h-3.5 w-3.5 mr-1" />Add Segment
-              </Button>
-            </div>
-            {segments.map((seg, idx) => (
-              <div key={idx} className="grid grid-cols-5 gap-2 items-end bg-muted/30 rounded-lg p-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">From</Label>
-                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">To</Label>
-                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Distance (km)</Label>
-                  <Input type="number" min="0.1" step="0.1" placeholder="km" value={seg.distanceKm} onChange={(e) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, distanceKm: e.target.value } : x))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Est. Hours</Label>
-                  <Input type="number" min="1" placeholder="hrs" value={seg.estimatedHours} onChange={(e) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, estimatedHours: e.target.value } : x))} />
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive self-end" disabled={segments.length === 1} onClick={() => setSegments((s) => s.filter((_, i) => i !== idx))}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
           </div>
 
           <Separator />

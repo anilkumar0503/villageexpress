@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
 
     console.log('[SEGMENTS_API] PM Profile:', pmProfile)
 
-    if (!pmProfile) {
-      return NextResponse.json({ success: false, error: 'Point Manager profile not found' }, { status: 404 })
+    if (!pmProfile?.shopLocationId) {
+      return NextResponse.json({ success: true, data: { items: [], total: 0, page, pageSize } })
     }
 
     // Get route segments that start or end at PM's location

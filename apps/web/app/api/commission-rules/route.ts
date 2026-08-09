@@ -6,8 +6,10 @@ import { requirePermission } from '@/lib/auth/permissions'
 const createSchema = z.object({
   routeSegmentId: z.string().uuid().optional(),
   vehicleType: z.enum(['BIKE', 'AUTO', 'MINI_VAN', 'VAN']).nullable().optional(),
-  captainCommissionPct: z.number().min(0).max(100),
-  pmCommissionPct: z.number().min(0).max(100),
+  captainCommissionPct: z.number().min(0).max(100).optional().default(10),
+  pmCommissionPct: z.number().min(0).max(100).optional().default(5),
+  captainCommissionFlat: z.number().min(0).nullable().optional(),
+  pmCommissionFlat: z.number().min(0).nullable().optional(),
   isActive: z.boolean().default(true),
 })
 
@@ -62,27 +64,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { routeSegmentId, vehicleType, captainCommissionPct, pmCommissionPct, isActive } = parsed.data
+    const { routeSegmentId, vehicleType, captainCommissionPct, pmCommissionPct, captainCommissionFlat, pmCommissionFlat, isActive } = parsed.data
+    const flatData = {
+      captainCommissionFlat: captainCommissionFlat ?? null,
+      pmCommissionFlat: pmCommissionFlat ?? null,
+    }
 
     // If no routeSegmentId, create global rule
     if (!routeSegmentId) {
-      // Find existing rule by vehicleType
-      const existingRule = await prisma.globalCommissionRule.findFirst({
-        where: {
-          vehicleType: vehicleType ?? null,
-        },
-      })
+      const existingRule = await prisma.globalCommissionRule.findFirst({ where: { vehicleType: vehicleType ?? null } })
 
       if (existingRule) {
         const rule = await prisma.globalCommissionRule.update({
           where: { id: existingRule.id },
-          data: { captainCommissionPct, pmCommissionPct, isActive },
+          data: { captainCommissionPct, pmCommissionPct, ...flatData, isActive },
         })
         return NextResponse.json({ success: true, data: rule }, { status: 200 })
       }
 
       const rule = await prisma.globalCommissionRule.create({
-        data: { vehicleType: vehicleType ?? null, captainCommissionPct, pmCommissionPct, isActive },
+        data: { vehicleType: vehicleType ?? null, captainCommissionPct, pmCommissionPct, ...flatData, isActive },
       })
       return NextResponse.json({ success: true, data: rule }, { status: 201 })
     }
@@ -94,8 +95,8 @@ export async function POST(req: NextRequest) {
           vehicleType: vehicleType as any,
         },
       },
-      create: { routeSegmentId, vehicleType: vehicleType as any, captainCommissionPct, pmCommissionPct, isActive },
-      update: { captainCommissionPct, pmCommissionPct, isActive },
+      create: { routeSegmentId, vehicleType: vehicleType as any, captainCommissionPct, pmCommissionPct, ...flatData, isActive },
+      update: { captainCommissionPct, pmCommissionPct, ...flatData, isActive },
       include: {
         routeSegment: {
           include: {

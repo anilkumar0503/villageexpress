@@ -1,20 +1,23 @@
 'use client'
 
-import { CheckCircle2, Circle, Clock, Package, Truck, MapPin, CheckCircle } from 'lucide-react'
+const STATUS_ORDER = [
+  'PENDING', 'CONFIRMED', 'RECEIVED_AT_POINT', 'ASSIGNED',
+  'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED',
+]
 
-type TimelineStep = {
-  key: string
-  label: string
-  icon: React.ElementType
-  completed: boolean
-  current: boolean
-  timestamp?: Date | string | null
-}
+const STEPS = [
+  { status: 'RECEIVED_AT_POINT', label: 'At Pickup' },
+  { status: 'ASSIGNED',          label: 'Assigned'  },
+  { status: 'PICKED_UP',         label: 'Picked Up' },
+  { status: 'IN_TRANSIT',        label: 'In Transit' },
+  { status: 'OUT_FOR_DELIVERY',  label: 'Out for Delivery' },
+  { status: 'DELIVERED',         label: 'Delivered' },
+]
 
 interface BookingTimelineProps {
   booking: {
     status: string
-    createdAt: string | Date
+    createdAt?: string | Date
     paidAt?: string | Date | null
     paymentStatus?: string
   }
@@ -30,114 +33,56 @@ interface BookingTimelineProps {
   compact?: boolean
 }
 
-export function BookingTimeline({ booking, segments = [], compact = false }: BookingTimelineProps) {
-  const getSteps = (): TimelineStep[] => {
-    const steps: TimelineStep[] = [
-      {
-        key: 'created',
-        label: 'Booked',
-        icon: Package,
-        completed: true,
-        current: false,
-        timestamp: booking.createdAt,
-      },
-    ]
-
-    if (booking.paidAt || booking.paymentStatus === 'PAID') {
-      steps.push({
-        key: 'paid',
-        label: 'Payment',
-        icon: CheckCircle,
-        completed: true,
-        current: false,
-        timestamp: booking.paidAt,
-      })
-    }
-
-    // Check if any segment is delivered
-    const isDelivered = segments.some(s => s.status === 'DELIVERED')
-    const lastDeliveredSegment = segments.find(s => s.status === 'DELIVERED')
-
-    if (isDelivered && lastDeliveredSegment) {
-      steps.push({
-        key: 'delivered',
-        label: 'Delivered',
-        icon: CheckCircle2,
-        completed: true,
-        current: false,
-        timestamp: lastDeliveredSegment.deliveredAt,
-      })
-    }
-
-    return steps
-  }
-
-  const steps = getSteps()
-  const currentStepIndex = steps.findIndex((s) => s.current)
-
-  const formatTimestamp = (timestamp?: Date | string | null) => {
-    if (!timestamp) return null
-    try {
-      const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
-      return date.toLocaleString('en-IN', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      })
-    } catch {
-      return null
-    }
-  }
+export function BookingTimeline({ booking }: BookingTimelineProps) {
+  const isCancelled = booking.status === 'CANCELLED'
+  const currentOrderIdx = STATUS_ORDER.indexOf(booking.status)
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Live Tracking</p>
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        {steps.map((step, idx) => {
-          const Icon = step.icon
-          const isCompleted = step.completed
-          const isCurrent = step.current
-          const isPending = !isCompleted && !isCurrent
-          const timestamp = formatTimestamp(step.timestamp)
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">Order Status</p>
+      {isCancelled ? (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+          Cancelled
+        </span>
+      ) : (
+        <div className="flex items-end overflow-x-auto pb-1">
+          {STEPS.map((step, idx) => {
+            const stepOrderIdx = STATUS_ORDER.indexOf(step.status)
+            const isCompleted = currentOrderIdx > stepOrderIdx
+            const isCurrent = currentOrderIdx === stepOrderIdx
+            const isLast = idx === STEPS.length - 1
 
-          return (
-            <div key={step.key} className="flex items-center gap-2 flex-shrink-0">
-              <div
-                className={`rounded-full p-1.5 ${
-                  isCompleted
-                    ? 'bg-green-100 text-green-600'
-                    : isCurrent
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                <Icon className="h-3 w-3" />
-              </div>
-              <div className="min-w-0">
-                <p
-                  className={`text-xs font-medium whitespace-nowrap ${
-                    isCompleted ? 'text-foreground' : isCurrent ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {step.label}
-                </p>
-                {timestamp && (
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">{timestamp}</p>
+            return (
+              <div key={step.status} className="flex items-center flex-shrink-0">
+                <div className="flex flex-col items-center gap-1">
+                  <span className={`text-[10px] whitespace-nowrap leading-none ${
+                    isCompleted
+                      ? 'text-green-600 font-medium'
+                      : isCurrent
+                      ? 'text-primary font-semibold'
+                      : 'text-muted-foreground/50'
+                  }`}>
+                    {step.label}
+                  </span>
+                  <div className={`h-2 w-2 rounded-full ${
+                    isCompleted
+                      ? 'bg-green-500'
+                      : isCurrent
+                      ? 'bg-primary ring-2 ring-primary/30'
+                      : 'bg-muted-foreground/25'
+                  }`} />
+                </div>
+                {!isLast && (
+                  <div className={`h-0.5 w-5 mx-0.5 self-end mb-[3px] flex-shrink-0 ${
+                    isCompleted ? 'bg-green-300' : 'bg-muted-foreground/15'
+                  }`} />
                 )}
               </div>
-              {idx < steps.length - 1 && (
-                <div
-                  className={`h-0.5 w-8 flex-shrink-0 ${
-                    isCompleted ? 'bg-green-200' : isCurrent ? 'bg-primary/30' : 'bg-muted'
-                  }`}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

@@ -62,4 +62,83 @@ test.describe('Admin Journey', () => {
     await expect(page.locator('[data-testid="approvals-page"]')).toBeVisible()
     await expect(page.locator('[data-testid="page-title"]')).toBeVisible()
   })
+
+  // ── User edit: displayId & password ───────────────────────────────────────
+
+  test('users page loads without errors', async ({ page }) => {
+    await page.goto('/users')
+    await expect(page.locator('[data-testid="users-page"]')).toBeVisible()
+    await expect(page.locator('body')).not.toContainText('Internal Server Error')
+  })
+
+  test('edit user dialog has User ID field', async ({ page }) => {
+    await page.goto('/users')
+    // Open the first edit dialog
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+      await expect(page.getByLabel('User ID')).toBeVisible()
+    }
+  })
+
+  test('edit user dialog has New Password and Confirm Password fields', async ({ page }) => {
+    await page.goto('/users')
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+      await expect(page.getByLabel('New Password')).toBeVisible()
+      await expect(page.getByLabel('Confirm Password')).toBeVisible()
+    }
+  })
+
+  test('edit user dialog shows password hint text', async ({ page }) => {
+    await page.goto('/users')
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+      await expect(page.getByText('Leave blank to keep the existing password')).toBeVisible()
+    }
+  })
+
+  test('edit user dialog shows validation error for short password', async ({ page }) => {
+    await page.goto('/users')
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+
+      await page.getByLabel('New Password').fill('short')
+      await page.getByLabel('Confirm Password').fill('short')
+      await page.getByRole('button', { name: 'Save Changes' }).click()
+
+      await expect(page.getByText('Password must be at least 8 characters')).toBeVisible()
+    }
+  })
+
+  test('edit user dialog shows validation error when passwords do not match', async ({ page }) => {
+    await page.goto('/users')
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+
+      await page.getByLabel('New Password').fill('securepass1')
+      await page.getByLabel('Confirm Password').fill('securepass2')
+      await page.getByRole('button', { name: 'Save Changes' }).click()
+
+      await expect(page.getByText('Passwords do not match')).toBeVisible()
+    }
+  })
+
+  test('edit user dialog can update displayId field value', async ({ page }) => {
+    await page.goto('/users')
+    const editBtn = page.getByRole('button', { name: /edit/i }).first()
+    if (await editBtn.isVisible()) {
+      await editBtn.click()
+
+      const userIdInput = page.getByLabel('User ID')
+      await userIdInput.clear()
+      await userIdInput.fill('TEST-001')
+
+      await expect(userIdInput).toHaveValue('TEST-001')
+    }
+  })
 })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@ve/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { sendAccountSuspendedEmail } from '@/lib/email'
@@ -8,7 +9,9 @@ const updateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   phone: z.string().min(10).max(10).optional(),
+  displayId: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
+  newPassword: z.string().min(8).optional(),
   vehicleType: z.enum(['BIKE', 'AUTO', 'MINI_VAN', 'VAN']).optional(),
   vehicleNumber: z.string().min(4).optional(),
   districtIds: z.array(z.string()).optional(),
@@ -71,14 +74,29 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
-    const { vehicleType, vehicleNumber, districtIds, selectedPoints, ...userData } = parsed.data
+    const { vehicleType, vehicleNumber, districtIds, selectedPoints, newPassword, ...userData } = parsed.data
 
     // Update basic user data
-    const user = await prisma.user.update({
-      where: { id },
-      data: userData,
-      select: { id: true, displayId: true, name: true, email: true, phone: true, isActive: true },
-    })
+    let user
+    try {
+      user = await prisma.user.update({
+        where: { id },
+        data: userData,
+        select: { id: true, displayId: true, name: true, email: true, phone: true, isActive: true },
+      })
+    } catch (uniqueErr: any) {
+      if (uniqueErr?.code === 'P2002') {
+        const field = uniqueErr?.meta?.target?.[0] ?? 'field'
+        return NextResponse.json({ success: false, error: `This ${field} is already taken by another user.` }, { status: 409 })
+      }
+      throw uniqueErr
+    }
+
+    // Update password if provided
+    if (newPassword) {
+      const hashed = await bcrypt.hash(newPassword, 12)
+      await prisma.user.update({ where: { id }, data: { password: hashed } })
+    }
 
     // Send suspension email if account is being deactivated
     if (userData.isActive === false && user.email) {

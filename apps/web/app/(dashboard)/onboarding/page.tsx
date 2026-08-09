@@ -89,10 +89,7 @@ export default function OnboardingPage() {
   async function handleNext() {
     setError('')
     if (step === 'kyc') {
-      if (!form.aadhaarNumber || !form.drivingLicense) {
-        return setError('Please fill all required fields')
-      }
-      if (form.aadhaarNumber.length !== 12) return setError('Aadhaar number must be 12 digits')
+      if (form.aadhaarNumber && form.aadhaarNumber.length !== 12) return setError('Aadhaar number must be 12 digits')
       setStep('vehicle')
     } else if (step === 'vehicle') {
       if (!form.vehicleType || !form.vehicleNumber) {
@@ -172,20 +169,21 @@ export default function OnboardingPage() {
               <CardDescription>Upload your identity documents for verification</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground -mt-2">Documents can be submitted now or uploaded later from your profile.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Aadhaar Number *</Label>
+                  <Label>Aadhaar Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input maxLength={12} placeholder="12-digit number" value={form.aadhaarNumber} onChange={(e) => set('aadhaarNumber', e.target.value.replace(/\D/g, ''))} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Driving License No. *</Label>
+                  <Label>Driving License No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input placeholder="e.g. AP0120230012345" value={form.drivingLicense} onChange={(e) => set('drivingLicense', e.target.value.toUpperCase())} />
                 </div>
                 <div className="col-span-2">
-                  <FileUpload folder="aadhaar" accept="image/jpeg,image/png,application/pdf" label="Aadhaar Card (photo/scan)" onUploadComplete={(url) => set('aadhaarFileUrl', url)} />
+                  <FileUpload folder="aadhaar" accept="image/jpeg,image/png,application/pdf" label="Aadhaar Card photo/scan (optional)" onUploadComplete={(url) => set('aadhaarFileUrl', url)} />
                 </div>
                 <div className="col-span-2">
-                  <FileUpload folder="driving-license" accept="image/jpeg,image/png,application/pdf" label="Driving License (photo/scan)" onUploadComplete={(url) => set('licenseFileUrl', url)} />
+                  <FileUpload folder="driving-license" accept="image/jpeg,image/png,application/pdf" label="Driving License photo/scan (optional)" onUploadComplete={(url) => set('licenseFileUrl', url)} />
                 </div>
               </div>
             </CardContent>

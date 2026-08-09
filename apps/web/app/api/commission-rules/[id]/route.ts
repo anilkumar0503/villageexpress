@@ -8,6 +8,8 @@ type RouteContext = { params: Promise<{ id: string }> }
 const updateSchema = z.object({
   captainCommissionPct: z.number().min(0).max(100).optional(),
   pmCommissionPct: z.number().min(0).max(100).optional(),
+  captainCommissionFlat: z.number().min(0).nullable().optional(),
+  pmCommissionFlat: z.number().min(0).nullable().optional(),
   isActive: z.boolean().optional(),
 })
 

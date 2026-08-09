@@ -86,6 +86,7 @@ export default function UsersPage() {
   const [selectedLocation, setSelectedLocation] = useState<string>('')
   const [savingPMLocation, setSavingPMLocation] = useState(false)
   const [savingUser, setSavingUser] = useState(false)
+  const [saveUserError, setSaveUserError] = useState('')
   const [editFormData, setEditFormData] = useState<any>({})
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([])
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([])
@@ -255,15 +256,19 @@ export default function UsersPage() {
 
   async function openEditUser(user: User) {
     setEditingUser(user)
+    setSaveUserError('')
     setEditFormData({
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
+      displayId: user.displayId ?? '',
+      name: user.name ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
       isActive: user.isActive,
       vehicleType: user.captainProfile?.vehicleType || '',
       vehicleNumber: user.captainProfile?.vehicleNumber || '',
       districtId: user.captainProfile?.districtId || '',
       districtIds: (user.captainProfile as any)?.districtIds || [],
+      newPassword: '',
+      confirmPassword: '',
     })
 
     // Derive districts from point assignments (captain can have points from multiple districts)
@@ -355,34 +360,51 @@ export default function UsersPage() {
 
   async function saveUser() {
     if (!editingUser) return
+    setSaveUserError('')
+
+    // Validate password if being set
+    if (editFormData.newPassword) {
+      if (editFormData.newPassword.length < 8) return setSaveUserError('Password must be at least 8 characters')
+      if (editFormData.newPassword !== editFormData.confirmPassword) return setSaveUserError('Passwords do not match')
+    }
+
     setSavingUser(true)
     try {
       // Filter out null values from selectedPoints
       const validSelectedPoints = selectedPoints.filter((p) => p !== null && p !== undefined && p !== '')
 
+      const body: Record<string, unknown> = {
+        displayId: editFormData.displayId,
+        name: editFormData.name,
+        email: editFormData.email,
+        phone: editFormData.phone,
+        isActive: editFormData.isActive,
+        ...(editingUser.captainProfile && {
+          vehicleType: editFormData.vehicleType,
+          vehicleNumber: editFormData.vehicleNumber,
+          districtIds: selectedDistricts,
+          selectedPoints: validSelectedPoints,
+        }),
+      }
+      if (editFormData.newPassword) body.newPassword = editFormData.newPassword
+
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({
-          name: editFormData.name,
-          email: editFormData.email,
-          phone: editFormData.phone,
-          isActive: editFormData.isActive,
-          ...(editingUser.captainProfile && {
-            vehicleType: editFormData.vehicleType,
-            vehicleNumber: editFormData.vehicleNumber,
-            districtIds: selectedDistricts,
-            selectedPoints: validSelectedPoints,
-          }),
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
+      if (!data.success) {
+        setSaveUserError(data.error || 'Failed to save user')
+        return
+      }
       if (data.success) {
         // Update only the changed fields in the local state to preserve nested data
         setUsers((prev) => prev.map((u: any) => {
           if (u.id === editingUser.id) {
             return {
               ...u,
+              displayId: data.data.displayId,
               name: data.data.name,
               email: data.data.email,
               phone: data.data.phone,
@@ -861,6 +883,14 @@ export default function UsersPage() {
                 <h3 className="text-sm font-medium">Basic Information</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
+                    <Label>User ID</Label>
+                    <Input
+                      value={editFormData.displayId}
+                      onChange={(e) => setEditFormData({ ...editFormData, displayId: e.target.value })}
+                      placeholder="e.g. VE001"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label>Name</Label>
                     <Input
                       value={editFormData.name}
@@ -876,7 +906,7 @@ export default function UsersPage() {
                       onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value.replace(/\D/g, '') })}
                     />
                   </div>
-                  <div className="space-y-1.5 col-span-2">
+                  <div className="space-y-1.5">
                     <Label>Email</Label>
                     <Input
                       type="email"
@@ -988,6 +1018,34 @@ export default function UsersPage() {
                   </div>
                 </>
               )}
+
+              {/* Set Password */}
+              <div className="border-t pt-4 space-y-3">
+                <h3 className="text-sm font-medium">Set Password</h3>
+                <p className="text-xs text-muted-foreground">Leave blank to keep the existing password.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>New Password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Min. 8 characters"
+                      value={editFormData.newPassword || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, newPassword: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Confirm Password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Repeat password"
+                      value={editFormData.confirmPassword || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, confirmPassword: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {saveUserError && <p className="text-sm text-destructive">{saveUserError}</p>}
 
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setEditingUser(null)}>

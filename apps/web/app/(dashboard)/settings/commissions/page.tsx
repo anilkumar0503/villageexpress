@@ -20,6 +20,8 @@ type CommissionRule = {
   vehicleType: string | null
   captainCommissionPct: number
   pmCommissionPct: number
+  captainCommissionFlat: number | null
+  pmCommissionFlat: number | null
   isActive: boolean
   routeSegment?: {
     id: string
@@ -56,6 +58,8 @@ export default function CommissionsSettingsPage() {
     vehicleType: string
     captainCommissionPct: string
     pmCommissionPct: string
+    captainCommissionFlat: string
+    pmCommissionFlat: string
     editingId?: string
   } | null>(null)
 
@@ -108,18 +112,15 @@ export default function CommissionsSettingsPage() {
       alert('Please select a vehicle type')
       return
     }
-    if (!editForm.captainCommissionPct || !editForm.pmCommissionPct) {
-      alert('Please enter commission percentages')
-      return
-    }
-
     setSaving(true)
     try {
       const payload = {
         ...(isGlobal ? {} : { routeSegmentId: editForm.routeSegmentId }),
         vehicleType: editForm.vehicleType === 'ALL' ? null : editForm.vehicleType,
-        captainCommissionPct: Number(editForm.captainCommissionPct),
-        pmCommissionPct: Number(editForm.pmCommissionPct),
+        captainCommissionPct: editForm.captainCommissionPct ? Number(editForm.captainCommissionPct) : 10,
+        pmCommissionPct: editForm.pmCommissionPct ? Number(editForm.pmCommissionPct) : 5,
+        captainCommissionFlat: editForm.captainCommissionFlat !== '' ? Number(editForm.captainCommissionFlat) : null,
+        pmCommissionFlat: editForm.pmCommissionFlat !== '' ? Number(editForm.pmCommissionFlat) : null,
         isActive: true,
       }
 
@@ -219,7 +220,7 @@ export default function CommissionsSettingsPage() {
                     <label className="text-xs text-muted-foreground mb-1 block">Route Segment</label>
                     <Select
                       value={editForm?.routeSegmentId ?? ''}
-                      onValueChange={(v) => setEditForm((f) => f ? { ...f, routeSegmentId: v } : { routeSegmentId: v, vehicleType: 'ALL', captainCommissionPct: '10', pmCommissionPct: '5' })}
+                      onValueChange={(v) => setEditForm((f) => f ? { ...f, routeSegmentId: v } : { routeSegmentId: v, vehicleType: 'ALL', captainCommissionPct: '10', pmCommissionPct: '5', captainCommissionFlat: '', pmCommissionFlat: '' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Segment..." />
@@ -238,7 +239,7 @@ export default function CommissionsSettingsPage() {
                   <label className="text-xs text-muted-foreground mb-1 block">Vehicle Type</label>
                   <Select
                     value={editForm?.vehicleType ?? 'ALL'}
-                    onValueChange={(v) => setEditForm((f) => f ? { ...f, vehicleType: v } : { routeSegmentId: '', vehicleType: v, captainCommissionPct: '10', pmCommissionPct: '5' })}
+                    onValueChange={(v) => setEditForm((f) => f ? { ...f, vehicleType: v } : { routeSegmentId: '', vehicleType: v, captainCommissionPct: '10', pmCommissionPct: '5', captainCommissionFlat: '', pmCommissionFlat: '' })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -252,7 +253,33 @@ export default function CommissionsSettingsPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Captain Commission %</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Captain Flat ₹ <span className="text-muted-foreground/60">(overrides %)</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="e.g. 6"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    value={editForm?.captainCommissionFlat ?? ''}
+                    onChange={(e) => setEditForm((f) => f ? { ...f, captainCommissionFlat: e.target.value } : null)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">PM Flat ₹ <span className="text-muted-foreground/60">(overrides %)</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="e.g. 6"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    value={editForm?.pmCommissionFlat ?? ''}
+                    onChange={(e) => setEditForm((f) => f ? { ...f, pmCommissionFlat: e.target.value } : null)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Captain % <span className="text-muted-foreground/60">(used if no flat)</span></label>
                   <input
                     type="number"
                     min="0"
@@ -264,7 +291,7 @@ export default function CommissionsSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">PM Commission %</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">PM % <span className="text-muted-foreground/60">(used if no flat)</span></label>
                   <input
                     type="number"
                     min="0"
@@ -315,8 +342,12 @@ export default function CommissionsSettingsPage() {
                         {!rule.isActive && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
                       </div>
                       <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>Captain: <span className="font-semibold text-foreground">{Number(rule.captainCommissionPct)}%</span></span>
-                        <span>Point Manager: <span className="font-semibold text-foreground">{Number(rule.pmCommissionPct)}%</span></span>
+                        <span>Captain: <span className="font-semibold text-foreground">
+                          {rule.captainCommissionFlat != null ? `₹${Number(rule.captainCommissionFlat)} flat` : `${Number(rule.captainCommissionPct)}%`}
+                        </span></span>
+                        <span>Point Manager: <span className="font-semibold text-foreground">
+                          {rule.pmCommissionFlat != null ? `₹${Number(rule.pmCommissionFlat)} flat` : `${Number(rule.pmCommissionPct)}%`}
+                        </span></span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -329,6 +360,8 @@ export default function CommissionsSettingsPage() {
                           vehicleType: rule.vehicleType ?? 'ALL',
                           captainCommissionPct: String(rule.captainCommissionPct),
                           pmCommissionPct: String(rule.pmCommissionPct),
+                          captainCommissionFlat: rule.captainCommissionFlat != null ? String(rule.captainCommissionFlat) : '',
+                          pmCommissionFlat: rule.pmCommissionFlat != null ? String(rule.pmCommissionFlat) : '',
                         })}
                       >
                         <Pencil className="h-3.5 w-3.5" />

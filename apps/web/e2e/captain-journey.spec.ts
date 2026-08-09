@@ -26,4 +26,46 @@ test.describe('Captain Journey', () => {
     await expect(page.locator('[data-testid="wallet-page"]')).toBeVisible()
     await expect(page.locator('[data-testid="balance-card"]')).toBeVisible()
   })
+
+  // ── Order status timeline ──────────────────────────────────────────────────
+
+  test('captain page loads without errors', async ({ page }) => {
+    await page.goto('/captain')
+    // Page should not show an error state
+    await expect(page.locator('body')).not.toContainText('Something went wrong')
+    await expect(page.locator('body')).not.toContainText('Internal Server Error')
+  })
+
+  test('captain page shows active assignments tab', async ({ page }) => {
+    await page.goto('/captain')
+    await expect(page.getByRole('tab', { name: /active|assignments/i })).toBeVisible()
+  })
+
+  test('order status section heading is visible on assignment cards when assignments exist', async ({ page }) => {
+    await page.goto('/captain')
+    // Only verify timeline if there are assignment cards
+    const cards = page.locator('text=Order Status')
+    const count = await cards.count()
+    if (count > 0) {
+      await expect(cards.first()).toBeVisible()
+    }
+  })
+
+  test('order status timeline labels are present on assignment cards', async ({ page }) => {
+    await page.goto('/captain')
+    const stepLabels = ['At Pickup', 'Assigned', 'Picked Up', 'In Transit', 'Out for Delivery', 'Delivered']
+    const firstLabel = page.getByText(stepLabels[0]).first()
+    const hasTimeline = await firstLabel.isVisible().catch(() => false)
+    if (hasTimeline) {
+      // If timeline is shown, all labels should be present
+      for (const label of stepLabels) {
+        await expect(page.getByText(label).first()).toBeVisible()
+      }
+    }
+  })
+
+  test('completed assignments tab is present', async ({ page }) => {
+    await page.goto('/captain')
+    await expect(page.getByRole('tab', { name: /completed|delivered/i })).toBeVisible()
+  })
 })

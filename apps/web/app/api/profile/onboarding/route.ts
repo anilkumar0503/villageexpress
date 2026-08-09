@@ -4,9 +4,9 @@ import { prisma } from '@ve/db'
 import { requireAuth } from '@/lib/auth/permissions'
 
 const onboardingSchema = z.object({
-  aadhaarNumber: z.string().min(12).max(12),
+  aadhaarNumber: z.string().min(12).max(12).optional(),
   aadhaarFileUrl: z.string().optional(),
-  drivingLicense: z.string().min(1),
+  drivingLicense: z.string().min(1).optional(),
   licenseFileUrl: z.string().optional(),
   vehicleType: z.enum(['BIKE', 'AUTO', 'MINI_VAN', 'VAN']),
   vehicleNumber: z.string().min(1),

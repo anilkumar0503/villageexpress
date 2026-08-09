@@ -598,14 +598,16 @@ model RoutePricingRule {
 }
 
 model RouteCommissionRule {
-  id                    String      @id @default(uuid())
-  routeSegmentId        String
-  vehicleType           VehicleType?
-  captainCommissionPct  Decimal     @default(10)
-  pmCommissionPct       Decimal     @default(5)
-  isActive              Boolean     @default(true)
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  id                      String      @id @default(uuid())
+  routeSegmentId          String
+  vehicleType             VehicleType?
+  captainCommissionPct    Decimal     @default(10)
+  pmCommissionPct         Decimal     @default(5)
+  captainCommissionFlat   Decimal?
+  pmCommissionFlat        Decimal?
+  isActive                Boolean     @default(true)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   routeSegment RouteSegment @relation(fields: [routeSegmentId], references: [id], onDelete: Cascade)
 
@@ -615,13 +617,15 @@ model RouteCommissionRule {
 }
 
 model GlobalCommissionRule {
-  id                    String      @id @default(uuid())
-  vehicleType           VehicleType?
-  captainCommissionPct  Decimal     @default(10)
-  pmCommissionPct       Decimal     @default(5)
-  isActive              Boolean     @default(true)
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  id                      String      @id @default(uuid())
+  vehicleType             VehicleType?
+  captainCommissionPct    Decimal     @default(10)
+  pmCommissionPct         Decimal     @default(5)
+  captainCommissionFlat   Decimal?
+  pmCommissionFlat        Decimal?
+  isActive                Boolean     @default(true)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   @@unique([vehicleType])
   @@index([vehicleType])

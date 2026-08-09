@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useAuth } from '@/hooks/use-auth'
 import { CameraCapture } from '@/components/camera-capture'
 import { FileUpload } from '@/components/file-upload'
+import { BookingTimeline } from '@/components/booking-timeline'
 
 type AvailabilityStatus = 'AVAILABLE' | 'BUSY' | 'OFF_DUTY'
 type BookingSegment = {
@@ -279,6 +280,7 @@ export default function CaptainPage() {
               <span>{s.booking.customer.name} · {s.booking.customer.phone}</span>
               <span>{s.booking.parcelWeight}kg · {s.booking.parcelType}</span>
             </div>
+            <BookingTimeline booking={s.booking} />
           </div>
           <div className="flex items-center gap-2 sm:flex-col sm:items-stretch sm:w-36">
             {NEXT_STATUS[s.status] && !isCancelled && (
@@ -442,6 +444,7 @@ export default function CaptainPage() {
                       <span>{s.booking.customer.name} · {s.booking.customer.phone}</span>
                       <span>{s.booking.parcelWeight}kg · {s.booking.parcelType}</span>
                     </div>
+                    <BookingTimeline booking={s.booking} />
                   </div>
                   <Link href={`/bookings/${s.booking.id}`}>
                     <Button variant="outline" size="sm" className="w-full sm:w-auto">Details</Button>
