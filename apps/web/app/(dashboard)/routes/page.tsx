@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { LocationCombobox } from '@/components/ui/location-combobox'
 import { useAuth } from '@/hooks/use-auth'
 
 type LocationOption = { id: string; pointName: string; village: string; district: string; state: string }
@@ -67,6 +68,9 @@ export default function RoutesPage() {
   const { accessToken } = useAuth()
   const [routes, setRoutes] = useState<RouteRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRoutes, setTotalRoutes] = useState(0)
   const [allLocations, setAllLocations] = useState<LocationOption[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -108,15 +112,19 @@ export default function RoutesPage() {
       .then((d) => { if (d.success) setAllLocations(d.data.items) })
   }, [accessToken])
 
-  async function fetchRoutes() {
+  async function fetchRoutes(p = page) {
     setLoading(true)
-    const res = await fetch('/api/routes', { headers: { Authorization: `Bearer ${accessToken}` } })
+    const res = await fetch(`/api/routes?page=${p}&pageSize=10`, { headers: { Authorization: `Bearer ${accessToken}` } })
     const data = await res.json()
-    if (data.success) setRoutes(data.data)
+    if (data.success) {
+      setRoutes(data.data)
+      setTotalPages(data.pagination.totalPages)
+      setTotalRoutes(data.pagination.total)
+    }
     setLoading(false)
   }
 
-  useEffect(() => { fetchRoutes() }, [])
+  useEffect(() => { fetchRoutes(page) }, [page])
 
   function resetForm() {
     setName(''); setSourceLocationId(''); setDestLocationId(''); setEstimatedDays('2')
@@ -182,7 +190,8 @@ export default function RoutesPage() {
       if (!data.success) return setError(data.error || 'Failed to create route')
       setDialogOpen(false)
       resetForm()
-      fetchRoutes()
+      setPage(1)
+      fetchRoutes(1)
     } catch {
       setError('Failed to create route')
     } finally {
@@ -373,7 +382,9 @@ export default function RoutesPage() {
     })
     setDeleteRouteDialogOpen(false)
     setDeletingRouteId(null)
-    fetchRoutes()
+    const nextPage = routes.length === 1 && page > 1 ? page - 1 : page
+    setPage(nextPage)
+    fetchRoutes(nextPage)
   }
 
   const locLabel = (id: string) => {
@@ -503,6 +514,44 @@ export default function RoutesPage() {
         </div>
       )}
 
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, totalRoutes)} of {totalRoutes} routes
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? 'default' : 'outline'}
+                size="sm"
+                className="w-8 px-0"
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={editRuleDialogOpen} onOpenChange={setEditRuleDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Edit Pricing Rule</DialogTitle></DialogHeader>
@@ -609,17 +658,11 @@ export default function RoutesPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Source Location</Label>
-                <Select value={editSourceId} onValueChange={setEditSourceId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox locations={allLocations} value={editSourceId} onValueChange={setEditSourceId} placeholder="Select" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Destination Location</Label>
-                <Select value={editDestId} onValueChange={setEditDestId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox locations={allLocations} value={editDestId} onValueChange={setEditDestId} placeholder="Select" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Estimated Days</Label>
@@ -642,17 +685,11 @@ export default function RoutesPage() {
               <div key={idx} className="grid grid-cols-5 gap-2 items-end bg-muted/30 rounded-lg p-3">
                 <div className="space-y-1">
                   <Label className="text-xs">From</Label>
-                  <Select value={seg.fromLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue placeholder="From" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
-                  </Select>
+                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">To</Label>
-                  <Select value={seg.toLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue placeholder="To" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
-                  </Select>
+                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Distance (km)</Label>
@@ -693,17 +730,11 @@ export default function RoutesPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Source Location</Label>
-                <Select value={sourceLocationId} onValueChange={setSourceLocationId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox locations={allLocations} value={sourceLocationId} onValueChange={setSourceLocationId} placeholder="Select" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Destination Location</Label>
-                <Select value={destLocationId} onValueChange={setDestLocationId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village}) — {l.district}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox locations={allLocations} value={destLocationId} onValueChange={setDestLocationId} placeholder="Select" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Estimated Days</Label>
@@ -726,17 +757,11 @@ export default function RoutesPage() {
               <div key={idx} className="grid grid-cols-5 gap-2 items-end bg-muted/30 rounded-lg p-3">
                 <div className="space-y-1">
                   <Label className="text-xs">From</Label>
-                  <Select value={seg.fromLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue placeholder="From" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
-                  </Select>
+                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">To</Label>
-                  <Select value={seg.toLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue placeholder="To" /></SelectTrigger>
-                    <SelectContent>{allLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.pointName} ({l.village})</SelectItem>)}</SelectContent>
-                  </Select>
+                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Distance (km)</Label>

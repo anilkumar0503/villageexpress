@@ -34,32 +34,43 @@ export async function GET(req: NextRequest) {
     const sourceId = searchParams.get('sourceId')
     const destId = searchParams.get('destId')
     const activeOnly = searchParams.get('activeOnly') === 'true'
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') ?? '10', 10)))
 
     const where: any = {}
     if (sourceId) where.sourceLocationId = sourceId
     if (destId) where.destinationLocationId = destId
     if (activeOnly) where.isActive = true
 
-    const routes = await prisma.route.findMany({
-      where,
-      include: {
-        sourceLocation: true,
-        destinationLocation: true,
-        segments: {
-          orderBy: { sequenceOrder: 'asc' },
-          include: {
-            fromLocation: true,
-            toLocation: true,
+    const [total, routes] = await Promise.all([
+      prisma.route.count({ where }),
+      prisma.route.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          sourceLocation: true,
+          destinationLocation: true,
+          segments: {
+            orderBy: { sequenceOrder: 'asc' },
+            include: {
+              fromLocation: true,
+              toLocation: true,
+            },
+          },
+          pricingRules: {
+            where: { isActive: true },
           },
         },
-        pricingRules: {
-          where: { isActive: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
 
-    return NextResponse.json({ success: true, data: routes })
+    return NextResponse.json({
+      success: true,
+      data: routes,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    })
   } catch (err) {
     console.error('[ROUTES/GET]', err)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
