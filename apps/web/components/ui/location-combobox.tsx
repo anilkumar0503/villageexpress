@@ -17,6 +17,7 @@ interface LocationComboboxProps {
   value: string
   onValueChange: (value: string) => void
   placeholder?: string
+  disabled?: boolean
   className?: string
   triggerClassName?: string
 }
@@ -26,6 +27,7 @@ export function LocationCombobox({
   value,
   onValueChange,
   placeholder = 'Select location',
+  disabled = false,
   className,
   triggerClassName,
 }: LocationComboboxProps) {
@@ -74,7 +76,8 @@ export function LocationCombobox({
     <div ref={containerRef} className={cn('relative', className)}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((v) => !v)}
         className={cn(
           'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
           !selected && 'text-muted-foreground',

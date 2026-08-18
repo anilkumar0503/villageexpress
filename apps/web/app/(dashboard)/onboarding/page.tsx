@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Truck, FileText, MapPin } from 'lucide-react'
+import { Loader2, CheckCircle2, Truck, FileText, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,22 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileUpload } from '@/components/file-upload'
 import { useAuth } from '@/hooks/use-auth'
 
-type Step = 'kyc' | 'vehicle' | 'areas' | 'success'
-
 export default function OnboardingPage() {
   const router = useRouter()
   const { accessToken } = useAuth()
-  const [step, setStep] = useState<Step>('kyc')
   const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+
   const [states, setStates] = useState<string[]>([])
   const [districts, setDistricts] = useState<string[]>([])
   const [points, setPoints] = useState<any[]>([])
+  const [loadingPoints, setLoadingPoints] = useState(false)
 
   const [form, setForm] = useState({
-    aadhaarNumber: '', aadhaarFileUrl: '',
-    drivingLicense: '', licenseFileUrl: '',
-    vehicleType: '', vehicleNumber: '',
+    aadhaarNumber: '',
+    aadhaarFileUrl: '',
+    drivingLicense: '',
+    licenseFileUrl: '',
+    vehicleType: '',
+    vehicleNumber: '',
+    selectedState: '',
     districtIds: [] as string[],
     selectedPoints: [] as string[],
   })
@@ -37,13 +41,36 @@ export default function OnboardingPage() {
       .then((d) => { if (d.success) setStates(d.data.states) })
   }, [])
 
+  function set(key: string, value: string) {
+    setForm((f) => ({ ...f, [key]: value }))
+  }
+
   async function loadDistricts(state: string) {
+    set('selectedState', state)
     setDistricts([])
     setPoints([])
-    setForm((f) => ({ ...f, districtIds: [], selectedPoints: [] }))
+    setForm((f) => ({ ...f, selectedState: state, districtIds: [], selectedPoints: [] }))
     const res = await fetch(`/api/locations/cascading?state=${encodeURIComponent(state)}`)
     const data = await res.json()
     if (data.success) setDistricts(data.data.districts)
+  }
+
+  async function loadPointsForDistricts(districtIds: string[]) {
+    if (districtIds.length === 0) { setPoints([]); return }
+    setLoadingPoints(true)
+    try {
+      const responses = await Promise.all(
+        districtIds.map((d) => fetch(`/api/locations?district=${encodeURIComponent(d)}&public=true`))
+      )
+      const allPoints: any[] = []
+      for (const res of responses) {
+        const data = await res.json()
+        if (data.success) allPoints.push(...data.data.items)
+      }
+      setPoints(allPoints)
+    } finally {
+      setLoadingPoints(false)
+    }
   }
 
   function toggleDistrict(district: string) {
@@ -51,26 +78,9 @@ export default function OnboardingPage() {
       const districtIds = f.districtIds.includes(district)
         ? f.districtIds.filter((id) => id !== district)
         : [...f.districtIds, district]
+      loadPointsForDistricts(districtIds)
       return { ...f, districtIds, selectedPoints: [] }
     })
-    loadPointsForDistricts()
-  }
-
-  async function loadPointsForDistricts() {
-    if (form.districtIds.length === 0) {
-      setPoints([])
-      return
-    }
-    const promises = form.districtIds.map((district) =>
-      fetch(`/api/locations?district=${encodeURIComponent(district)}&public=true`)
-    )
-    const responses = await Promise.all(promises)
-    const allPoints = []
-    for (const res of responses) {
-      const data = await res.json()
-      if (data.success) allPoints.push(...data.data.items)
-    }
-    setPoints(allPoints)
   }
 
   function togglePoint(pointId: string) {
@@ -82,38 +92,37 @@ export default function OnboardingPage() {
     }))
   }
 
-  function set(key: string, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-
-  async function handleNext() {
-    setError('')
-    if (step === 'kyc') {
-      if (form.aadhaarNumber && form.aadhaarNumber.length !== 12) return setError('Aadhaar number must be 12 digits')
-      setStep('vehicle')
-    } else if (step === 'vehicle') {
-      if (!form.vehicleType || !form.vehicleNumber) {
-        return setError('Please fill all required fields')
-      }
-      setStep('areas')
-    } else if (step === 'areas') {
-      if (form.districtIds.length === 0) return setError('Please select at least one operating district')
-      if (form.selectedPoints.length === 0) return setError('Please select at least one operating point')
-      await handleSubmit()
-    }
-  }
-
   async function handleSubmit() {
+    setError('')
+
+    if (form.aadhaarNumber && form.aadhaarNumber.length !== 12)
+      return setError('Aadhaar number must be 12 digits')
+    if (!form.vehicleType || !form.vehicleNumber)
+      return setError('Vehicle type and vehicle number are required')
+    if (form.districtIds.length === 0)
+      return setError('Please select at least one operating district')
+    if (form.selectedPoints.length === 0)
+      return setError('Please select at least one operating point')
+
     setLoading(true)
     try {
       const res = await fetch('/api/profile/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          aadhaarNumber: form.aadhaarNumber || undefined,
+          aadhaarFileUrl: form.aadhaarFileUrl || undefined,
+          drivingLicense: form.drivingLicense || undefined,
+          licenseFileUrl: form.licenseFileUrl || undefined,
+          vehicleType: form.vehicleType,
+          vehicleNumber: form.vehicleNumber,
+          districtIds: form.districtIds,
+          selectedPoints: form.selectedPoints,
+        }),
       })
       const data = await res.json()
       if (!data.success) return setError(data.error ?? 'Onboarding failed')
-      setStep('success')
+      setDone(true)
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -121,7 +130,7 @@ export default function OnboardingPage() {
     }
   }
 
-  if (step === 'success') {
+  if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <Card className="w-full max-w-md text-center">
@@ -149,168 +158,176 @@ export default function OnboardingPage() {
       <div className="w-full max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Complete Your Onboarding</h1>
-          <p className="text-sm text-muted-foreground mt-1">Step {step === 'kyc' ? 1 : step === 'vehicle' ? 2 : 3} of 3</p>
+          <p className="text-sm text-muted-foreground mt-1">Fill in all details below and submit once.</p>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center gap-2">
-          <div className={`flex-1 h-2 rounded-full ${step === 'kyc' || step === 'vehicle' || step === 'areas' ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex-1 h-2 rounded-full ${step === 'vehicle' || step === 'areas' ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex-1 h-2 rounded-full ${step === 'areas' ? 'bg-primary' : 'bg-muted'}`} />
-        </div>
-
-        {step === 'kyc' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                KYC Documents
-              </CardTitle>
-              <CardDescription>Upload your identity documents for verification</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground -mt-2">Documents can be submitted now or uploaded later from your profile.</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Aadhaar Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input maxLength={12} placeholder="12-digit number" value={form.aadhaarNumber} onChange={(e) => set('aadhaarNumber', e.target.value.replace(/\D/g, ''))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Driving License No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input placeholder="e.g. AP0120230012345" value={form.drivingLicense} onChange={(e) => set('drivingLicense', e.target.value.toUpperCase())} />
-                </div>
-                <div className="col-span-2">
-                  <FileUpload folder="aadhaar" accept="image/jpeg,image/png,application/pdf" label="Aadhaar Card photo/scan (optional)" onUploadComplete={(url) => set('aadhaarFileUrl', url)} />
-                </div>
-                <div className="col-span-2">
-                  <FileUpload folder="driving-license" accept="image/jpeg,image/png,application/pdf" label="Driving License photo/scan (optional)" onUploadComplete={(url) => set('licenseFileUrl', url)} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 'vehicle' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                Vehicle Details
-              </CardTitle>
-              <CardDescription>Tell us about the vehicle you'll use for deliveries</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Vehicle Type *</Label>
-                  <Select onValueChange={(v) => set('vehicleType', v)}>
-                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BIKE">Bike</SelectItem>
-                      <SelectItem value="AUTO">Auto</SelectItem>
-                      <SelectItem value="MINI_VAN">Mini Van</SelectItem>
-                      <SelectItem value="VAN">Van</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Vehicle Number *</Label>
-                  <Input placeholder="e.g. AP16AB1234" maxLength={10} value={form.vehicleNumber} onChange={(e) => set('vehicleNumber', e.target.value.toUpperCase())} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 'areas' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Operating Areas
-              </CardTitle>
-              <CardDescription>Select where you want to operate</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Section 1: KYC Documents */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-5 w-5" />
+              KYC Documents
+              <span className="text-xs font-normal text-muted-foreground ml-1">(optional — can be added later)</span>
+            </CardTitle>
+            <CardDescription>Upload your identity documents for verification</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Operating State</Label>
-                <Select onValueChange={loadDistricts}>
-                  <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                  <SelectContent>{states.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <Label>Aadhaar Number <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+                <Input
+                  maxLength={12}
+                  placeholder="12-digit number"
+                  value={form.aadhaarNumber}
+                  onChange={(e) => set('aadhaarNumber', e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Driving License No. <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+                <Input
+                  placeholder="e.g. AP0120230012345"
+                  value={form.drivingLicense}
+                  onChange={(e) => set('drivingLicense', e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="col-span-2">
+                <FileUpload
+                  folder="aadhaar"
+                  accept="image/jpeg,image/png,application/pdf"
+                  label="Aadhaar Card photo/scan (optional)"
+                  onUploadComplete={(url) => set('aadhaarFileUrl', url)}
+                />
+              </div>
+              <div className="col-span-2">
+                <FileUpload
+                  folder="driving-license"
+                  accept="image/jpeg,image/png,application/pdf"
+                  label="Driving License photo/scan (optional)"
+                  onUploadComplete={(url) => set('licenseFileUrl', url)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 2: Vehicle Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Truck className="h-5 w-5" />
+              Vehicle Details <span className="text-destructive">*</span>
+            </CardTitle>
+            <CardDescription>Tell us about the vehicle you&apos;ll use for deliveries</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Vehicle Type <span className="text-destructive">*</span></Label>
+                <Select value={form.vehicleType} onValueChange={(v) => set('vehicleType', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BIKE">Bike</SelectItem>
+                    <SelectItem value="AUTO">Auto</SelectItem>
+                    <SelectItem value="MINI_VAN">Mini Van</SelectItem>
+                    <SelectItem value="VAN">Van</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Operating Districts (select multiple)</Label>
-                {districts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Select a state first to see available districts</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg">
-                    {districts.map((district) => (
-                      <label key={district} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent rounded">
-                        <input
-                          type="checkbox"
-                          checked={form.districtIds.includes(district)}
-                          onChange={() => toggleDistrict(district)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-sm">{district}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <Label>Vehicle Number <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="e.g. AP16AB1234"
+                  maxLength={10}
+                  value={form.vehicleNumber}
+                  onChange={(e) => set('vehicleNumber', e.target.value.toUpperCase())}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 3: Operating Areas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MapPin className="h-5 w-5" />
+              Operating Areas <span className="text-destructive">*</span>
+            </CardTitle>
+            <CardDescription>Select where you want to operate</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>State <span className="text-destructive">*</span></Label>
+              <Select value={form.selectedState} onValueChange={loadDistricts}>
+                <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                <SelectContent>
+                  {states.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {districts.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Operating Districts <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground font-normal">(select one or more)</span></Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-2 border rounded-lg">
+                  {districts.map((district) => (
+                    <label key={district} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent rounded">
+                      <input
+                        type="checkbox"
+                        checked={form.districtIds.includes(district)}
+                        onChange={() => toggleDistrict(district)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-xs">{district}</span>
+                    </label>
+                  ))}
+                </div>
                 {form.districtIds.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {form.districtIds.length} district{form.districtIds.length !== 1 ? 's' : ''} selected
-                  </p>
+                  <p className="text-xs text-muted-foreground">{form.districtIds.length} district{form.districtIds.length !== 1 ? 's' : ''} selected</p>
                 )}
               </div>
+            )}
+
+            {form.districtIds.length > 0 && (
               <div className="space-y-1.5">
-                <Label>Operating Points (at least one required)</Label>
-                {points.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Select a district first to see available points</p>
+                <Label>Operating Points <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground font-normal">(select one or more)</span></Label>
+                {loadingPoints ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading points…
+                  </div>
+                ) : points.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No points found for selected districts.</p>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto p-2 border rounded-lg">
                     {points.map((point) => (
-                      <label key={point.id} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-accent">
+                      <label key={point.id} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent rounded">
                         <input
                           type="checkbox"
                           checked={form.selectedPoints.includes(point.id)}
                           onChange={() => togglePoint(point.id)}
                           className="h-4 w-4"
                         />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{point.pointName}</p>
-                          <p className="text-xs text-muted-foreground">{point.village}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{point.pointName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{point.village}</p>
                         </div>
                       </label>
                     ))}
                   </div>
                 )}
                 {form.selectedPoints.length > 0 && (
-                  <p className="text-sm text-muted-foreground mt-3">
-                    {form.selectedPoints.length} point{form.selectedPoints.length !== 1 ? 's' : ''} selected
-                  </p>
+                  <p className="text-xs text-muted-foreground">{form.selectedPoints.length} point{form.selectedPoints.length !== 1 ? 's' : ''} selected</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex gap-3">
-          {step !== 'kyc' && (
-            <Button variant="outline" onClick={() => setStep(step === 'vehicle' ? 'kyc' : 'vehicle')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          )}
-          <Button className="flex-1" disabled={loading} onClick={handleNext}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {step === 'areas' ? 'Complete Onboarding' : 'Next'}
-            {step !== 'areas' && <ArrowRight className="h-4 w-4 ml-2" />}
-          </Button>
-        </div>
+        <Button className="w-full" size="lg" disabled={loading} onClick={handleSubmit}>
+          {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting…</> : 'Submit Onboarding'}
+        </Button>
       </div>
     </div>
   )

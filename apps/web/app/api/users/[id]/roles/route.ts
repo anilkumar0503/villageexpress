@@ -52,6 +52,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     include: { role: true },
   })
 
+  // Auto-create an empty CaptainProfile if assigning the CAPTAIN role and none exists
+  if (assignment.role.name === 'CAPTAIN') {
+    const existing = await prisma.captainProfile.findUnique({ where: { userId: id } })
+    if (!existing) {
+      await prisma.captainProfile.create({ data: { userId: id } })
+    }
+  }
+
   await prisma.auditLog.create({
     data: {
       userId: session!.userId,

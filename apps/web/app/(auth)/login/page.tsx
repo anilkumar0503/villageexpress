@@ -24,9 +24,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
 
   useEffect(() => {
-    const expired = new URLSearchParams(window.location.search).get('expired')
-    if (expired === 'true') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('expired') === 'true') {
       setError('Your session has expired. Please sign in again.')
+    }
+    if (params.get('registered') === 'captain') {
+      setError('Account created! Please sign in to complete your onboarding.')
     }
   }, [])
 

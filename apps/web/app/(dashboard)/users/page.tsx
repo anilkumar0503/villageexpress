@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { LocationCombobox } from '@/components/ui/location-combobox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -92,6 +93,8 @@ export default function UsersPage() {
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([])
   const [skipNextEffect, setSkipNextEffect] = useState(false)
   const [resettingAvailability, setResettingAvailability] = useState<string | null>(null)
+  const [allRoles, setAllRoles] = useState<{ id: string; name: string }[]>([])
+  const [newPrimaryRoleId, setNewPrimaryRoleId] = useState('')
 
   // Reload points when selected districts change (skip initial load)
   useEffect(() => {
@@ -257,6 +260,8 @@ export default function UsersPage() {
   async function openEditUser(user: User) {
     setEditingUser(user)
     setSaveUserError('')
+    setNewPrimaryRoleId('')
+    setAllRoles([])
     setEditFormData({
       displayId: user.displayId ?? '',
       name: user.name ?? '',
@@ -323,6 +328,17 @@ export default function UsersPage() {
     setAvailablePoints(allPoints)
     setSelectedDistricts(existingDistricts)
     setSelectedPoints(existingPointIds)
+
+    // Fetch all system roles for the role-change dropdown
+    try {
+      const rolesRes = await fetch('/api/roles', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const rolesData = await rolesRes.json()
+      if (rolesData.success) setAllRoles(rolesData.data)
+    } catch {
+      // non-critical — role change section will still show with empty list
+    }
   }
 
   async function resetCaptainAvailability(userId: string) {
@@ -362,6 +378,11 @@ export default function UsersPage() {
     if (!editingUser) return
     setSaveUserError('')
 
+    // Validate required fields
+    if (!editFormData.phone || editFormData.phone.trim().length !== 10) {
+      return setSaveUserError('Phone number is required and must be 10 digits')
+    }
+
     // Validate password if being set
     if (editFormData.newPassword) {
       if (editFormData.newPassword.length < 8) return setSaveUserError('Password must be at least 8 characters')
@@ -399,7 +420,41 @@ export default function UsersPage() {
         return
       }
       if (data.success) {
-        // Update only the changed fields in the local state to preserve nested data
+        let updatedRoleName: string | null = null
+
+        // Handle role change if a new role was selected
+        if (newPrimaryRoleId) {
+          const selectedRole = allRoles.find(r => r.id === newPrimaryRoleId)
+          const currentPrimary = editingUser.userRoles.find(r => r.isPrimary) ?? editingUser.userRoles[0]
+          const currentRoleName = currentPrimary?.role.name
+
+          if (selectedRole && selectedRole.name !== currentRoleName) {
+            // 1. Add the new role as primary (this unsets isPrimary on the old one)
+            const addRes = await fetch(`/api/users/${editingUser.id}/roles`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ roleId: newPrimaryRoleId, isPrimary: true }),
+            })
+            const addData = await addRes.json()
+            if (!addData.success) {
+              setSaveUserError(addData.error || 'Failed to change role')
+              return
+            }
+
+            // 2. Remove the old role (it's no longer primary so delete is allowed)
+            const oldRoleId = allRoles.find(r => r.name === currentRoleName)?.id
+            if (oldRoleId) {
+              await fetch(`/api/users/${editingUser.id}/roles/${oldRoleId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${accessToken}` },
+              })
+            }
+
+            updatedRoleName = selectedRole.name
+          }
+        }
+
+        // Update local list state
         setUsers((prev) => prev.map((u: any) => {
           if (u.id === editingUser.id) {
             return {
@@ -409,8 +464,9 @@ export default function UsersPage() {
               email: data.data.email,
               phone: data.data.phone,
               isActive: data.data.isActive,
-              // Preserve all nested data
-              userRoles: u.userRoles,
+              userRoles: updatedRoleName
+                ? [{ role: { name: updatedRoleName }, isPrimary: true }]
+                : u.userRoles,
               pointManagerProfile: u.pointManagerProfile,
               captainProfile: u.captainProfile ? {
                 ...u.captainProfile,
@@ -898,12 +954,13 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Phone</Label>
+                    <Label>Phone <span className="text-destructive">*</span></Label>
                     <Input
                       type="tel"
                       maxLength={10}
                       value={editFormData.phone}
                       onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value.replace(/\D/g, '') })}
+                      placeholder="10-digit mobile number"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1019,6 +1076,52 @@ export default function UsersPage() {
                 </>
               )}
 
+              {/* Change Role */}
+              <div className="border-t pt-4 space-y-3">
+                <h3 className="text-sm font-medium">Change Role</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Current:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {editingUser.userRoles.find(r => r.isPrimary)?.role.name.replace(/_/g, ' ') ||
+                      editingUser.userRoles[0]?.role.name.replace(/_/g, ' ') || '—'}
+                  </Badge>
+                </div>
+                <Select value={newPrimaryRoleId} onValueChange={setNewPrimaryRoleId} disabled={allRoles.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={allRoles.length === 0 ? 'Loading roles…' : 'Select new role (leave blank to keep current)'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allRoles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {newPrimaryRoleId && (() => {
+                  const selectedName = allRoles.find(r => r.id === newPrimaryRoleId)?.name
+                  return (
+                    <div className="text-xs space-y-1">
+                      {selectedName === 'CAPTAIN' && (
+                        <p className="text-blue-600">
+                          ℹ A Captain profile will be created automatically. The user should update vehicle details and operating points from their profile.
+                        </p>
+                      )}
+                      {selectedName === 'POINT_MANAGER' && (
+                        <p className="text-amber-600">
+                          ⚠ Point Manager role requires onboarding. The user must complete the Point Manager onboarding (shop name + location) before their account is fully functional.
+                        </p>
+                      )}
+                      {selectedName !== 'CAPTAIN' && selectedName !== 'POINT_MANAGER' && (
+                        <p className="text-amber-600">
+                          ⚠ This will replace the user&apos;s current primary role.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
               {/* Set Password */}
               <div className="border-t pt-4 space-y-3">
                 <h3 className="text-sm font-medium">Set Password</h3>
@@ -1127,18 +1230,12 @@ export default function UsersPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Select New Location</Label>
-                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLocations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.pointName} - {loc.village}, {loc.district}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <LocationCombobox
+                  locations={availableLocations}
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                  placeholder="Search location..."
+                />
               </div>
               {selectedLocation && (
                 <p className="text-sm text-muted-foreground">

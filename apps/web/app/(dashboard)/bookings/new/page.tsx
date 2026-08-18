@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { LocationCombobox } from '@/components/ui/location-combobox'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/use-auth'
 
-type LocationOption = { id: string; pointName: string; village: string; district: string }
+type LocationOption = { id: string; pointName: string; village: string; district: string; state: string }
 type RouteOption = {
   id: string
   name: string
@@ -659,10 +660,13 @@ export default function NewBookingPage() {
                 </div>
               <div className="space-y-1.5">
                 <Label>Point</Label>
-                <Select value={pickupLocationId} disabled={!pickupDistrict} onValueChange={setPickupLocationId}>
-                  <SelectTrigger><SelectValue placeholder="Select point" /></SelectTrigger>
-                  <SelectContent>{pickupLocations.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox
+                  locations={pickupLocations}
+                  value={pickupLocationId}
+                  onValueChange={setPickupLocationId}
+                  placeholder="Select point"
+                  disabled={!pickupDistrict}
+                />
               </div>
               </div>
             </CardContent>
@@ -731,10 +735,13 @@ export default function NewBookingPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Point</Label>
-                <Select value={dropLocationId} disabled={!dropDistrict} onValueChange={setDropLocationId}>
-                  <SelectTrigger><SelectValue placeholder="Select point" /></SelectTrigger>
-                  <SelectContent>{dropLocations.filter((l: any) => l.id !== pickupLocationId).map((l: any) => <SelectItem key={l.id} value={l.id}>{l.pointName} - {l.village}</SelectItem>)}</SelectContent>
-                </Select>
+                <LocationCombobox
+                  locations={dropLocations.filter((l) => l.id !== pickupLocationId)}
+                  value={dropLocationId}
+                  onValueChange={setDropLocationId}
+                  placeholder="Select point"
+                  disabled={!dropDistrict}
+                />
               </div>
               </div>
             </CardContent>
