@@ -126,15 +126,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [accessToken, user, router])
 
   useEffect(() => {
-    if (accessToken) {
-      fetchNotifications()
-      const interval = setInterval(fetchNotifications, 30000) // Refresh every 30s
-      return () => clearInterval(interval)
+    if (!accessToken) return
+    const controller = new AbortController()
+
+    async function fetchNotifications() {
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal: controller.signal,
+        })
+        const d = await res.json()
+        if (d.success) {
+          setNotifications(d.data)
+          setUnreadCount(d.data.filter((n: any) => !n.read).length)
+        }
+      } catch (error: any) {
+        // Ignore aborts (component unmount / route change) — not a real error
+        if (error?.name === 'AbortError') return
+        console.error('Failed to fetch notifications:', error)
+      }
+    }
+
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000) // Refresh every 30s
+    return () => {
+      controller.abort()
+      clearInterval(interval)
     }
   }, [accessToken])
 
-  async function fetchNotifications() {
+  async function markAsRead(notificationIds: string[]) {
     try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ notificationIds }),
+      })
+      // Re-fetch to sync read state
       const res = await fetch('/api/notifications', {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
@@ -143,22 +174,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setNotifications(d.data)
         setUnreadCount(d.data.filter((n: any) => !n.read).length)
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error)
-    }
-  }
-
-  async function markAsRead(notificationIds: string[]) {
-    try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}` 
-        },
-        body: JSON.stringify({ notificationIds }),
-      })
-      fetchNotifications()
     } catch (error) {
       console.error('Failed to mark notifications as read:', error)
     }
