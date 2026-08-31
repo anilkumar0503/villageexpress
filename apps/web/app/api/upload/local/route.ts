@@ -5,10 +5,12 @@ import path from 'path'
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File
-    const folder = formData.get('folder') as string
-    const fileKey = formData.get('fileKey') as string
+    // Cast needed: Next.js 16 server routes use undici FormData (no .get/.entries in types)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formData = await req.formData() as any
+    const file = formData.get('file') as File | null
+    const folder = formData.get('folder') as string | null
+    const fileKey = formData.get('fileKey') as string | null
 
     if (!file || !folder || !fileKey) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 })

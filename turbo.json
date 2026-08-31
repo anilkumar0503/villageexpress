@@ -30,6 +30,10 @@
     },
     "db:seed": {
       "cache": false
+    },
+    "mobile:start": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

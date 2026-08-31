@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Village Express Captain",
+    "slug": "village-express-captain",
+    "scheme": "ve-captain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.villageexpress.captain"
+    },
+    "android": {
+      "package": "com.villageexpress.captain"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#2196F3"
+        }
+      ]
+    ]
+  }
+}

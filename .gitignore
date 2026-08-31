@@ -7,8 +7,10 @@ node_modules
 .next
 .turbo
 dist
-build
 out
+
+# Web build (Next.js)
+build
 
 # Environment variables — NEVER commit these
 .env
@@ -36,3 +38,37 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# ─── React Native / Expo ──────────────────────────────────────────────────────
+
+# Expo cache
+.expo/
+.expo-shared/
+
+# Metro bundler cache
+.metro-health-check*
+
+# Android build outputs (Gradle)
+apps/*/android/app/build/
+apps/*/android/.gradle/
+apps/*/android/app/.cxx/
+apps/*/android/local.properties
+
+# Android APK / AAB binaries — too large for git
+*.apk
+*.aab
+
+# Android signing keys — NEVER commit production keystores
+*.keystore
+*.jks
+!android/debug.keystore
+
+# iOS build outputs
+apps/*/ios/build/
+apps/*/ios/Pods/
+apps/*/ios/*.xcworkspace/xcuserdata/
+apps/*/ios/DerivedData/
+
+# React Native bundled assets (generated at build time)
+apps/*/android/app/src/main/assets/index.android.bundle
+apps/*/android/app/src/main/assets/index.android.bundle.meta

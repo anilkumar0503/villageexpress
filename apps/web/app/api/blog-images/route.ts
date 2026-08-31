@@ -10,8 +10,10 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File
+    // Cast needed: Next.js 16 server routes use undici FormData (no .get/.entries in types)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formData = await req.formData() as any
+    const file = formData.get('file') as File | null
 
     if (!file) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })

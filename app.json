@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "2e6eaec7-8e6f-47b6-ad07-c7ae7e3ca7b9"
+      }
+    },
+    "android": {
+      "package": "com.anilkumarb.villageexpress"
+    },
+    "ios": {
+      "bundleIdentifier": "com.anilkumarb.villageexpress",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

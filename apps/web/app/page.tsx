@@ -65,7 +65,7 @@ export default function LandingPage() {
   const [dropSuggestions, setDropSuggestions] = useState<Location[]>([])
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
   const [showDropSuggestions, setShowDropSuggestions] = useState(false)
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [vehicleConfigs, setVehicleConfigs] = useState<VehicleConfiguration[]>([])
   const [loadingConfigs, setLoadingConfigs] = useState(true)
   const [routeError, setRouteError] = useState<string | null>(null)

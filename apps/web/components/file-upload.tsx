@@ -28,53 +28,27 @@ export function FileUpload({ folder, accept = 'image/jpeg,image/png,image/webp',
     setUploading(true)
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
+      // Upload via server-side proxy to avoid CORS issues with direct Linode PUT
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', folder)
 
-      const presignRes = await fetch('/api/upload/presign', {
+      const headers: Record<string, string> = {}
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+
+      const res = await fetch('/api/upload/server', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ folder, mimeType: file.type }),
+        body: formData,
       })
-      const presignData = await presignRes.json()
-      if (!presignData.success) throw new Error(presignData.error)
-
-      const { uploadUrl, publicUrl, fileKey } = presignData.data
-
-      // Check if using local storage or S3 presigned URL
-      if (uploadUrl.startsWith('/api/upload/local')) {
-        // Use local storage
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('folder', folder)
-        formData.append('fileKey', fileKey)
-
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-        })
-        const uploadData = await uploadRes.json()
-        if (!uploadData.success) throw new Error(uploadData.error)
-      } else {
-        // Use S3 presigned URL
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        })
-        if (!uploadRes.ok) {
-          const text = await uploadRes.text().catch(() => '')
-          throw new Error(`Upload failed (${uploadRes.status})${text ? ': ' + text.slice(0, 200) : ''}`)
-        }
-      }
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error ?? 'Upload failed')
 
       if (file.type.startsWith('image/')) {
         setPreview(URL.createObjectURL(file))
       }
       setDone(true)
-      onUploadComplete(publicUrl)
+      onUploadComplete(data.data.publicUrl)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {

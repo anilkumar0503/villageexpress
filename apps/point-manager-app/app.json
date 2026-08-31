@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Village Express Point Manager",
+    "slug": "village-express-point-manager",
+    "scheme": "ve-pm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.villageexpress.pointmanager"
+    },
+    "android": {
+      "package": "com.villageexpress.pointmanager"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#FF9800"
+        }
+      ]
+    ]
+  }
+}

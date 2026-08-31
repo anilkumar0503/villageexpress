@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Village Express Customer",
+    "slug": "anil-kumar-b",
+    "scheme": "ve-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.villageexpress.customer",
+      "config": {
+        "googleMapsApiKey": "AIzaSyD0vap8x20000000000000000000000000"
+      }
+    },
+    "android": {
+      "package": "com.villageexpress.customer",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD0vap8x20000000000000000000000000"
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#4CAF50"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "179d1c65-3017-4d7c-b1b6-0765b6dbf7ec"
+      }
+    },
+    "owner": "anilkumarbs-team"
+  }
+}

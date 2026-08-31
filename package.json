@@ -18,7 +18,10 @@
     "test": "cd apps/web && npx vitest",
     "test:ui": "cd apps/web && npx vitest --ui",
     "test:e2e": "cd apps/web && npx playwright test",
-    "test:e2e:ui": "cd apps/web && npx playwright test --ui"
+    "test:e2e:ui": "cd apps/web && npx playwright test --ui",
+    "mobile:customer": "cd apps/customer-app && npm start",
+    "mobile:captain": "cd apps/captain-app && npm start",
+    "mobile:pm": "cd apps/point-manager-app && npm start"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2",

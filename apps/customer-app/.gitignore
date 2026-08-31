@@ -1,0 +1,18 @@
+# Generated native directories — EAS Build generates these on the server
+android/
+ios/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Node
+node_modules/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
