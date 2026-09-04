@@ -68,6 +68,7 @@ export default function PointManagerRegisterPage() {
     if (phone.length !== 10) return setError('Enter a valid 10-digit phone number')
     if (password.length < 8) return setError('Password must be at least 8 characters')
     if (password !== confirmPassword) return setError('Passwords do not match')
+    if (!form.shopPhoto) return setError('Please upload a Shop Photo')
 
     setLoading(true)
     try {
@@ -195,7 +196,7 @@ export default function PointManagerRegisterPage() {
             <FileUpload
               folder="shop-photos"
               accept="image/jpeg,image/png,image/webp"
-              label="Shop Photo (optional)"
+              label="Shop Photo *"
               onUploadComplete={(url) => set('shopPhoto', url)}
             />
           </CardContent>

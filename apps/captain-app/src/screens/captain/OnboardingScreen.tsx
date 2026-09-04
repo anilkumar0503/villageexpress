@@ -113,10 +113,14 @@ export default function OnboardingScreen({ navigation }: any) {
   const validateStep = () => {
     if (step === 1) {
       if (!/^\d{12}$/.test(aadhaarNumber)) { Alert.alert('Error', 'Enter a valid 12-digit Aadhaar number'); return false; }
+      if (aadhaarUploading) { Alert.alert('Please wait', 'Aadhaar photo is still uploading'); return false; }
+      if (!aadhaarFileUrl) { Alert.alert('Error', 'Please upload your Aadhaar photo'); return false; }
       return true;
     }
     if (step === 2) {
       if (!drivingLicense.trim()) { Alert.alert('Error', 'Enter your driving licence number'); return false; }
+      if (licenseUploading) { Alert.alert('Please wait', 'Licence photo is still uploading'); return false; }
+      if (!licenseFileUrl) { Alert.alert('Error', 'Please upload your Driving Licence photo'); return false; }
       return true;
     }
     if (step === 3) {
@@ -133,9 +137,9 @@ export default function OnboardingScreen({ navigation }: any) {
     try {
       await profileApi.submitOnboarding({
         aadhaarNumber,
-        aadhaarFileUrl: aadhaarFileUrl.trim() || undefined,
+        aadhaarFileUrl,
         drivingLicense,
-        licenseFileUrl: licenseFileUrl.trim() || undefined,
+        licenseFileUrl,
         vehicleType,
         vehicleNumber: vehicleNumber.trim().toUpperCase(),
         districtIds: ['default'],   // Admin assigns district after review
@@ -197,7 +201,7 @@ export default function OnboardingScreen({ navigation }: any) {
               placeholder="Enter 12-digit Aadhaar"
             />
 
-            <Text style={styles.label}>Aadhaar Photo (optional)</Text>
+            <Text style={styles.label}>Aadhaar Photo *</Text>
             <TouchableOpacity
               style={[styles.pickerBtn, aadhaarUploading && styles.disabled]}
               onPress={() => !aadhaarUploading && pickImage('aadhaar')}
@@ -234,7 +238,7 @@ export default function OnboardingScreen({ navigation }: any) {
               placeholder="e.g. TN0119XXXXXXXX"
             />
 
-            <Text style={styles.label}>Licence Photo (optional)</Text>
+            <Text style={styles.label}>Licence Photo *</Text>
             <TouchableOpacity
               style={[styles.pickerBtn, licenseUploading && styles.disabled]}
               onPress={() => !licenseUploading && pickImage('license')}

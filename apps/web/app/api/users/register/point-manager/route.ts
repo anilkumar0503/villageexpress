@@ -17,7 +17,7 @@ const schema = z.object({
     state: z.string().min(2),
     pincode: z.string().min(6).max(6),
   }),
-  shopPhoto: z.string().optional(),
+  shopPhoto: z.string().url('Shop photo must be a valid URL'),
 })
 
 export async function POST(req: NextRequest) {
