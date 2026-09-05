@@ -60,7 +60,7 @@ export default function OnboardingPage() {
     setLoadingPoints(true)
     try {
       const responses = await Promise.all(
-        districtIds.map((d) => fetch(`/api/locations?district=${encodeURIComponent(d)}&public=true`))
+        districtIds.map((d) => fetch(`/api/locations?district=${encodeURIComponent(d)}&public=true&pageSize=1000`))
       )
       const allPoints: any[] = []
       for (const res of responses) {

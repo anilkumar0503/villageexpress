@@ -106,7 +106,7 @@ export default function UsersPage() {
       const loadPoints = async () => {
         try {
           const promises = selectedDistricts.map((district: string) =>
-            fetch(`/api/locations?district=${encodeURIComponent(district)}`, {
+            fetch(`/api/locations?district=${encodeURIComponent(district)}&pageSize=1000`, {
               headers: { Authorization: `Bearer ${accessToken}` },
             })
           )
@@ -159,7 +159,7 @@ export default function UsersPage() {
     // Load points from all derived districts
     if (districtIds.length > 0) {
       const promises = districtIds.map((district: string) =>
-        fetch(`/api/locations?district=${encodeURIComponent(district)}`, {
+        fetch(`/api/locations?district=${encodeURIComponent(district)}&pageSize=1000`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
       )
@@ -216,7 +216,7 @@ export default function UsersPage() {
     setSelectedLocation(user.pointManagerProfile?.shopLocation?.id || '')
     // Load all available locations
     try {
-      const res = await fetch('/api/locations?isActive=true', {
+      const res = await fetch('/api/locations?isActive=true&pageSize=1000', {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       const data = await res.json()
@@ -309,7 +309,7 @@ export default function UsersPage() {
     let allPoints: any[] = []
     if (existingDistricts.length > 0) {
       const promises = existingDistricts.map((district: string) =>
-        fetch(`/api/locations?district=${encodeURIComponent(district)}`, {
+        fetch(`/api/locations?district=${encodeURIComponent(district)}&pageSize=1000`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
       )

@@ -106,7 +106,7 @@ export default function PricingRulesPage() {
   const [deletingRouteRuleId, setDeletingRouteRuleId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/locations?pageSize=200&isActive=true', { headers: { Authorization: `Bearer ${accessToken}` } })
+    fetch('/api/locations?pageSize=1000&isActive=true', { headers: { Authorization: `Bearer ${accessToken}` } })
       .then((r: Response) => r.json())
       .then((d) => { if (d.success) setAllLocations(d.data.items) })
   }, [accessToken])

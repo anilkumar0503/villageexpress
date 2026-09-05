@@ -74,7 +74,7 @@ export default function CaptainsByPointPage() {
 
   useEffect(() => {
     // Load all locations
-    fetch('/api/locations', {
+    fetch('/api/locations?pageSize=1000', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r: Response) => r.json())

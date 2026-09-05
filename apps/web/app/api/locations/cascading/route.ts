@@ -34,23 +34,33 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  const locations = await prisma.location.findMany({
-    where: { state: state!, district: district!, isActive: true },
-    select: {
-      id: true,
-      village: true,
-      mandal: true,
-      pointName: true,
-      pincode: true,
-      locationType: true,
-      latitude: true,
-      longitude: true,
-    },
-    orderBy: { village: 'asc' },
-  })
+  const page = Math.max(1, Number(searchParams.get('page') ?? 1))
+  const pageSize = Math.min(1000, Number(searchParams.get('pageSize') ?? 1000))
+
+  const [locations, total] = await Promise.all([
+    prisma.location.findMany({
+      where: { state: state!, district: district!, isActive: true },
+      select: {
+        id: true,
+        village: true,
+        mandal: true,
+        pointName: true,
+        pincode: true,
+        locationType: true,
+        latitude: true,
+        longitude: true,
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { village: 'asc' },
+    }),
+    prisma.location.count({
+      where: { state: state!, district: district!, isActive: true },
+    }),
+  ])
 
   return NextResponse.json({
     success: true,
-    data: { locations },
+    data: { locations, total, page, pageSize },
   })
 }

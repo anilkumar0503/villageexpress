@@ -105,7 +105,7 @@ export default function NewBookingPage() {
     if (receiverPhoneParam) setReceiverPhone(decodeURIComponent(receiverPhoneParam))
 
     if (pickupId || dropId) {
-      fetch('/api/locations', {
+      fetch('/api/locations?pageSize=1000', {
         headers: { Authorization: `Bearer ${accessToken}` },
       }).then((r: Response) => r.json()).then((d) => {
         if (d.success) {
@@ -222,7 +222,7 @@ export default function NewBookingPage() {
   }
 
   async function loadLocations(state: string, district: string, type: 'pickup' | 'drop') {
-    const res = await fetch(`/api/locations/cascading?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`)
+    const res = await fetch(`/api/locations/cascading?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}&pageSize=1000`)
     const data = await res.json()
     if (data.success) {
       if (type === 'pickup') setPickupLocations(data.data.locations)

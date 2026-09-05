@@ -112,7 +112,7 @@ export default function LandingPage() {
     }
 
     try {
-      const response = await fetch(`/api/locations?search=${encodeURIComponent(query)}&public=true&isActive=true`)
+      const response = await fetch(`/api/locations?search=${encodeURIComponent(query)}&public=true&isActive=true&pageSize=1000`)
       const data = await response.json()
 
       if (data.success) {

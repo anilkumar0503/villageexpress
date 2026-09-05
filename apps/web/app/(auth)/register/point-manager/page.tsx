@@ -50,7 +50,7 @@ export default function PointManagerRegisterPage() {
     setSelectedDistrict(district)
     setLocations([])
     setForm((f) => ({ ...f, shopLocationId: '' }))
-    const res = await fetch(`/api/locations/cascading?state=${encodeURIComponent(selectedState)}&district=${encodeURIComponent(district)}`)
+    const res = await fetch(`/api/locations/cascading?state=${encodeURIComponent(selectedState)}&district=${encodeURIComponent(district)}&pageSize=1000`)
     const data = await res.json()
     if (data.success) setLocations(data.data.locations)
   }

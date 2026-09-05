@@ -79,7 +79,7 @@ export default function AllBookingsPage() {
   useEffect(() => { fetchBookings() }, [statusFilter, fromLocationFilter, toLocationFilter])
 
   useEffect(() => {
-    fetch('/api/locations?locationType=POINT&pageSize=200', {
+    fetch('/api/locations?locationType=POINT&pageSize=1000', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r: Response) => r.json())

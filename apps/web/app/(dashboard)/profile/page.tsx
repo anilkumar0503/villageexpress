@@ -69,7 +69,7 @@ export default function ProfilePage() {
               setSelectedPointsDetails(p.captainProfile.pointAssignments.map((pa) => pa.location))
             }
             // Load available points from captain's district (only active)
-            fetch(`/api/locations?district=${encodeURIComponent(districtToUse)}&isActive=true`, {
+            fetch(`/api/locations?district=${encodeURIComponent(districtToUse)}&isActive=true&pageSize=1000`, {
               headers: { Authorization: `Bearer ${accessToken}` },
             })
               .then((r: Response) => r.json())
@@ -141,7 +141,7 @@ export default function ProfilePage() {
   async function loadPoints(district: string) {
     setSelectedDistrict(district)
     // Load points for the selected district (only active points)
-    const res = await fetch(`/api/locations?district=${encodeURIComponent(district)}&isActive=true`, {
+    const res = await fetch(`/api/locations?district=${encodeURIComponent(district)}&isActive=true&pageSize=1000`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     const data = await res.json()

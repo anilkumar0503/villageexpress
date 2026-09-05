@@ -95,7 +95,7 @@ export default function RoutesPage() {
   const [pricingRules, setPricingRules] = useState<PricingRuleForm[]>([{ ...EMPTY_PRICING }])
 
   useEffect(() => {
-    fetch('/api/locations?pageSize=200&isActive=true', {
+    fetch('/api/locations?pageSize=1000&isActive=true', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r: Response) => r.json())
