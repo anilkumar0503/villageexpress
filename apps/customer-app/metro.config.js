@@ -17,11 +17,18 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// Block the stale root-level react-native 0.87.0 from Metro's file map
-// so it never ends up in the bundle — the app has its own 0.73.0 locally.
+// Block root-level react-native (0.87.x) and react-native-safe-area-context (5.x)
+// from Metro's file map — the app has its own compatible versions locally.
+// Without this, Metro resolves both copies (one for the app, one for @ve/mobile-shared)
+// which causes "Tried to register two views with the same name RNCSafeAreaProvider".
+const escapeForRegex = (p) => p.replace(/\\/g, '\\\\').replace(/\./g, '\\.');
+
 const rootRNPath = path.join(monorepoRoot, 'node_modules', 'react-native') + path.sep;
-const escapedPath = rootRNPath.replace(/\\/g, '\\\\').replace(/\./g, '\\.');
-config.resolver.blockList = new RegExp('^' + escapedPath + '.*');
+const rootSafeAreaPath = path.join(monorepoRoot, 'node_modules', 'react-native-safe-area-context') + path.sep;
+
+config.resolver.blockList = new RegExp(
+  '^(' + escapeForRegex(rootRNPath) + '|' + escapeForRegex(rootSafeAreaPath) + ').*'
+);
 
 // Also redirect the top-level 'react-native' import explicitly.
 const localRNIndex = path.join(localRNRoot, 'index.js');
