@@ -17,24 +17,36 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// Block root-level react-native (0.87.x) and react-native-safe-area-context (5.x)
-// from Metro's file map — the app has its own compatible versions locally.
-// Without this, Metro resolves both copies (one for the app, one for @ve/mobile-shared)
-// which causes "Tried to register two views with the same name RNCSafeAreaProvider".
+// Block root-level packages that conflict with app-local versions.
+// The monorepo root has react@19 and react-native@0.87 installed for the web
+// workspace, but the customer-app needs react@18 and react-native@0.73.
+// Without these blocks, Metro resolves both copies when processing
+// @ve/mobile-shared, causing:
+//   • "Cannot read property 'useState' of null"  (two React instances)
+//   • "Tried to register two views with the same name RNCSafeAreaProvider"
 const escapeForRegex = (p) => p.replace(/\\/g, '\\\\').replace(/\./g, '\\.');
 
-const rootRNPath = path.join(monorepoRoot, 'node_modules', 'react-native') + path.sep;
-const rootSafeAreaPath = path.join(monorepoRoot, 'node_modules', 'react-native-safe-area-context') + path.sep;
+const rootBlockedPaths = [
+  'react',
+  'react-native',
+  'react-native-safe-area-context',
+].map(pkg => path.join(monorepoRoot, 'node_modules', pkg) + path.sep);
 
 config.resolver.blockList = new RegExp(
-  '^(' + escapeForRegex(rootRNPath) + '|' + escapeForRegex(rootSafeAreaPath) + ').*'
+  '^(' + rootBlockedPaths.map(escapeForRegex).join('|') + ').*'
 );
 
-// Also redirect the top-level 'react-native' import explicitly.
+// Explicitly redirect singleton packages to the app-local copies so that
+// any context (including @ve/mobile-shared) always gets the same instance.
 const localRNIndex = path.join(localRNRoot, 'index.js');
+const localReactIndex = path.join(appNodeModules, 'react', 'index.js');
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'react-native') {
     return { filePath: localRNIndex, type: 'sourceFile' };
+  }
+  if (moduleName === 'react') {
+    return { filePath: localReactIndex, type: 'sourceFile' };
   }
   return context.resolveRequest(context, moduleName, platform);
 };
