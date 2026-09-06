@@ -54,11 +54,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { segments, ...routeData } = body
+    const { segments, pricingRules, ...routeData } = body
 
     // Delete existing segments and create new ones
     if (segments && Array.isArray(segments)) {
       await prisma.routeSegment.deleteMany({ where: { routeId: id } })
+    }
+
+    // Delete existing pricing rules and create new ones
+    if (pricingRules && Array.isArray(pricingRules)) {
+      await prisma.routePricingRule.deleteMany({ where: { routeId: id } })
     }
 
     const route = await prisma.route.update({
@@ -70,6 +75,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             create: segments.map((seg: any, idx: number) => ({
               ...seg,
               sequenceOrder: idx + 1,
+            })),
+          },
+        } : {}),
+        ...(pricingRules && Array.isArray(pricingRules) ? {
+          pricingRules: {
+            create: pricingRules.map((rule: any) => ({
+              basePrice: rule.basePrice,
+              pricePerKm: rule.pricePerKm,
+              weightSurcharge: rule.weightSurcharge ?? 0,
+              priority: rule.priority || 'STANDARD',
+              vehicleType: rule.vehicleType || null,
+              isActive: true,
             })),
           },
         } : {}),

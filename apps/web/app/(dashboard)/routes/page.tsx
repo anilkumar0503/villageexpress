@@ -24,6 +24,13 @@ type PricingRuleForm = {
   vehicleType: string
 }
 
+type SegmentForm = {
+  fromLocationId: string
+  toLocationId: string
+  distanceKm: string
+  estimatedHours: string
+}
+
 type RouteRecord = {
   id: string
   name: string
@@ -55,6 +62,7 @@ type RouteRecord = {
 }
 
 const EMPTY_PRICING: PricingRuleForm = { basePrice: '', pricePerKm: '', weightSurcharge: '0', priority: 'STANDARD', vehicleType: '' }
+const EMPTY_SEGMENT: SegmentForm = { fromLocationId: '', toLocationId: '', distanceKm: '', estimatedHours: '' }
 
 export default function RoutesPage() {
   const { accessToken } = useAuth()
@@ -93,6 +101,9 @@ export default function RoutesPage() {
   const [destLocationId, setDestLocationId] = useState('')
   const [estimatedDays, setEstimatedDays] = useState('2')
   const [pricingRules, setPricingRules] = useState<PricingRuleForm[]>([{ ...EMPTY_PRICING }])
+  const [segments, setSegments] = useState<SegmentForm[]>([{ ...EMPTY_SEGMENT }])
+  const [editSegments, setEditSegments] = useState<SegmentForm[]>([])
+  const [editPricingRules, setEditPricingRules] = useState<PricingRuleForm[]>([{ ...EMPTY_PRICING }])
 
   useEffect(() => {
     fetch('/api/locations?pageSize=1000&isActive=true', {
@@ -119,6 +130,7 @@ export default function RoutesPage() {
   function resetForm() {
     setName(''); setSourceLocationId(''); setDestLocationId(''); setEstimatedDays('2')
     setPricingRules([{ ...EMPTY_PRICING }])
+    setSegments([{ ...EMPTY_SEGMENT }])
     setError('')
   }
 
@@ -143,6 +155,9 @@ export default function RoutesPage() {
   async function handleSave() {
     if (!name.trim()) return setError('Route name is required')
     if (!sourceLocationId || !destLocationId) return setError('Source and destination locations are required')
+    const validSegments = segments.filter((s) => s.fromLocationId && s.toLocationId && s.distanceKm && s.estimatedHours)
+    if (segments.some((s) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
+      return setError('All segment fields (from, to, distance, hours) are required')
     if (pricingRules.some((r: any) => !r.basePrice || !r.pricePerKm))
       return setError('Base price and price per km are required for all pricing rules')
 
@@ -157,6 +172,12 @@ export default function RoutesPage() {
           destinationLocationId: destLocationId,
           estimatedDays: Number(estimatedDays),
           isActive: true,
+          segments: validSegments.map((s) => ({
+            fromLocationId: s.fromLocationId,
+            toLocationId: s.toLocationId,
+            distanceKm: Number(s.distanceKm),
+            estimatedHours: Number(s.estimatedHours),
+          })),
           pricingRules: pricingRules.map((r: any) => ({
             basePrice: Number(r.basePrice),
             pricePerKm: Number(r.pricePerKm),
@@ -186,6 +207,27 @@ export default function RoutesPage() {
     setEditSourceId(route.sourceLocationId)
     setEditDestId(route.destinationLocationId)
     setEditDays(String(route.estimatedDays))
+    setEditSegments(
+      route.segments.length > 0
+        ? route.segments.map((s) => ({
+            fromLocationId: s.fromLocationId,
+            toLocationId: s.toLocationId,
+            distanceKm: String(s.distanceKm),
+            estimatedHours: String(s.estimatedHours),
+          }))
+        : [{ ...EMPTY_SEGMENT }]
+    )
+    setEditPricingRules(
+      route.pricingRules.length > 0
+        ? route.pricingRules.map((r) => ({
+            basePrice: String(Number(r.basePrice)),
+            pricePerKm: String(Number(r.pricePerKm)),
+            weightSurcharge: String(Number(r.weightSurcharge)),
+            priority: r.priority,
+            vehicleType: r.vehicleType ?? '',
+          }))
+        : [{ ...EMPTY_PRICING }]
+    )
     setEditError('')
     setEditDialogOpen(true)
   }
@@ -193,11 +235,28 @@ export default function RoutesPage() {
   async function handleUpdate() {
     if (!editName.trim()) return setEditError('Route name is required')
     if (!editDays || Number(editDays) < 1) return setEditError('Estimated days must be at least 1')
+    if (editSegments.some((s) => !s.fromLocationId || !s.toLocationId || !s.distanceKm || !s.estimatedHours))
+      return setEditError('All segment fields (from, to, distance, hours) are required')
+    if (editPricingRules.some((r) => !r.basePrice || !r.pricePerKm))
+      return setEditError('Base price and price per km are required for all pricing rules')
     setSaving(true); setEditError('')
     try {
       const body: Record<string, unknown> = {
         name: editName.trim(),
         estimatedDays: Number(editDays),
+        segments: editSegments.map((s) => ({
+          fromLocationId: s.fromLocationId,
+          toLocationId: s.toLocationId,
+          distanceKm: Number(s.distanceKm),
+          estimatedHours: Number(s.estimatedHours),
+        })),
+        pricingRules: editPricingRules.map((r) => ({
+          basePrice: Number(r.basePrice),
+          pricePerKm: Number(r.pricePerKm),
+          weightSurcharge: Number(r.weightSurcharge),
+          priority: r.priority,
+          vehicleType: r.vehicleType || null,
+        })),
       }
       if (editSourceId) body.sourceLocationId = editSourceId
       if (editDestId) body.destinationLocationId = editDestId
@@ -422,6 +481,28 @@ export default function RoutesPage() {
                 {expanded && (
                   <CardContent className="pt-0 space-y-4">
                     <Separator />
+                    {/* Segments */}
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Segments</p>
+                      {route.segments.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {route.segments.map((seg, idx) => (
+                            <div key={seg.id} className="flex items-center gap-2 text-xs bg-muted/40 rounded-lg p-2.5">
+                              <span className="text-muted-foreground font-medium w-4">{idx + 1}.</span>
+                              <span className="font-medium flex-1">{seg.fromLocation.pointName} → {seg.toLocation.pointName}</span>
+                              <Badge variant="outline" className="text-xs">{seg.distanceKm} km</Badge>
+                              <Badge variant="outline" className="text-xs">{seg.estimatedHours}h</Badge>
+                            </div>
+                          ))}
+                          <p className="text-xs text-muted-foreground text-right pt-1">
+                            Total: <span className="font-semibold text-foreground">{route.segments.reduce((sum, s) => sum + Number(s.distanceKm), 0)} km</span>
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-destructive italic">No segments defined — distance-based pricing will not work correctly. Click edit to add segments.</p>
+                      )}
+                    </div>
+                    <Separator />
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pricing Rules</p>
@@ -619,6 +700,103 @@ export default function RoutesPage() {
             </div>
           </div>
 
+          <Separator />
+
+          {/* Segments */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Route Segments</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditSegments((s) => [...s, { ...EMPTY_SEGMENT }])}>
+                <Plus className="h-3.5 w-3.5 mr-1" />Add Segment
+              </Button>
+            </div>
+            {/* Column headers */}
+            <div className="grid grid-cols-[3fr_3fr_1fr_1fr_32px] gap-2 px-1">
+              {['From Location', 'To Location', 'Dist. (km)', 'Hours', ''].map((h) => (
+                <p key={h} className="text-xs font-medium text-muted-foreground">{h}</p>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {editSegments.map((seg, idx) => (
+                <div key={idx} className="grid grid-cols-[3fr_3fr_1fr_1fr_32px] gap-2 items-center rounded-md px-1 py-1 hover:bg-muted/30">
+                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
+                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="50" value={seg.distanceKm} onChange={(e) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, distanceKm: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="1" placeholder="2" value={seg.estimatedHours} onChange={(e) => setEditSegments((s) => s.map((x, i) => i === idx ? { ...x, estimatedHours: e.target.value } : x))} />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" disabled={editSegments.length === 1} onClick={() => setEditSegments((s) => s.filter((_, i) => i !== idx))}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {editSegments.some((s) => s.distanceKm) && (
+              <p className="text-xs text-muted-foreground text-right">
+                Total distance: <span className="font-semibold text-foreground">{editSegments.reduce((sum, s) => sum + (Number(s.distanceKm) || 0), 0).toFixed(1)} km</span>
+              </p>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Pricing Rules */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Pricing Rules</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  const priorities = ['STANDARD', 'EXPRESS', 'OVERNIGHT'] as const
+                  const vehicleTypes = ['BIKE', 'AUTO', 'MINI_VAN', 'VAN'] as const
+                  const defaults: PricingRuleForm[] = []
+                  for (const priority of priorities)
+                    for (const vehicleType of vehicleTypes)
+                      defaults.push({ basePrice: '', pricePerKm: '', weightSurcharge: '0', priority, vehicleType })
+                  setEditPricingRules(defaults)
+                }}>
+                  Generate Defaults
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditPricingRules((r) => [...r, { ...EMPTY_PRICING }])}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Add Rule
+                </Button>
+              </div>
+            </div>
+            {/* Column headers */}
+            <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_32px] gap-2 px-1">
+              {['Priority', 'Vehicle', 'Base (₹)', '/km (₹)', 'Wt. Sur. (₹)', ''].map((h) => (
+                <p key={h} className="text-xs font-medium text-muted-foreground">{h}</p>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {editPricingRules.map((rule, idx) => (
+                <div key={idx} className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_32px] gap-2 items-center rounded-md px-1 py-1 hover:bg-muted/30">
+                  <Select value={rule.priority} onValueChange={(v) => setEditPricingRules((r) => r.map((x, i) => i === idx ? { ...x, priority: v } : x))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="STANDARD">Standard</SelectItem>
+                      <SelectItem value="EXPRESS">Express</SelectItem>
+                      <SelectItem value="OVERNIGHT">Overnight</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={rule.vehicleType} onValueChange={(v) => setEditPricingRules((r) => r.map((x, i) => i === idx ? { ...x, vehicleType: v === 'ANY' ? '' : v } : x))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ANY">Any</SelectItem>
+                      <SelectItem value="BIKE">Bike</SelectItem>
+                      <SelectItem value="AUTO">Auto</SelectItem>
+                      <SelectItem value="MINI_VAN">Mini Van</SelectItem>
+                      <SelectItem value="VAN">Van</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input className="h-8 text-xs" type="number" min="0" placeholder="50" value={rule.basePrice} onChange={(e) => setEditPricingRules((r) => r.map((x, i) => i === idx ? { ...x, basePrice: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="5" value={rule.pricePerKm} onChange={(e) => setEditPricingRules((r) => r.map((x, i) => i === idx ? { ...x, pricePerKm: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="0" value={rule.weightSurcharge} onChange={(e) => setEditPricingRules((r) => r.map((x, i) => i === idx ? { ...x, weightSurcharge: e.target.value } : x))} />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" disabled={editPricingRules.length === 1} onClick={() => setEditPricingRules((r) => r.filter((_, i) => i !== idx))}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {editError && <p className="text-sm text-destructive">{editError}</p>}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
@@ -658,6 +836,42 @@ export default function RoutesPage() {
 
           <Separator />
 
+          {/* Segments */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Route Segments</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setSegments((s) => [...s, { ...EMPTY_SEGMENT }])}>
+                <Plus className="h-3.5 w-3.5 mr-1" />Add Segment
+              </Button>
+            </div>
+            {/* Column headers */}
+            <div className="grid grid-cols-[3fr_3fr_1fr_1fr_32px] gap-2 px-1">
+              {['From Location', 'To Location', 'Dist. (km)', 'Hours', ''].map((h) => (
+                <p key={h} className="text-xs font-medium text-muted-foreground">{h}</p>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {segments.map((seg, idx) => (
+                <div key={idx} className="grid grid-cols-[3fr_3fr_1fr_1fr_32px] gap-2 items-center rounded-md px-1 py-1 hover:bg-muted/30">
+                  <LocationCombobox locations={allLocations} value={seg.fromLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, fromLocationId: v } : x))} placeholder="From" />
+                  <LocationCombobox locations={allLocations} value={seg.toLocationId} onValueChange={(v) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, toLocationId: v } : x))} placeholder="To" />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="50" value={seg.distanceKm} onChange={(e) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, distanceKm: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="1" placeholder="2" value={seg.estimatedHours} onChange={(e) => setSegments((s) => s.map((x, i) => i === idx ? { ...x, estimatedHours: e.target.value } : x))} />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" disabled={segments.length === 1} onClick={() => setSegments((s) => s.filter((_, i) => i !== idx))}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {segments.some((s) => s.distanceKm) && (
+              <p className="text-xs text-muted-foreground text-right">
+                Total distance: <span className="font-semibold text-foreground">{segments.reduce((sum, s) => sum + (Number(s.distanceKm) || 0), 0).toFixed(1)} km</span>
+              </p>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Pricing Rules */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -671,23 +885,25 @@ export default function RoutesPage() {
                 </Button>
               </div>
             </div>
-            {pricingRules.map((rule, idx) => (
-              <div key={idx} className="grid grid-cols-8 gap-2 items-end bg-muted/30 rounded-lg p-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Priority</Label>
+            {/* Column headers */}
+            <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_32px] gap-2 px-1">
+              {['Priority', 'Vehicle', 'Base (₹)', '/km (₹)', 'Wt. Sur. (₹)', ''].map((h) => (
+                <p key={h} className="text-xs font-medium text-muted-foreground">{h}</p>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {pricingRules.map((rule, idx) => (
+                <div key={idx} className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_32px] gap-2 items-center rounded-md px-1 py-1 hover:bg-muted/30">
                   <Select value={rule.priority} onValueChange={(v) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, priority: v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="STANDARD">Standard</SelectItem>
                       <SelectItem value="EXPRESS">Express</SelectItem>
                       <SelectItem value="OVERNIGHT">Overnight</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Vehicle</Label>
                   <Select value={rule.vehicleType} onValueChange={(v) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, vehicleType: v === 'ANY' ? '' : v } : x))}>
-                    <SelectTrigger className="text-xs"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ANY">Any</SelectItem>
                       <SelectItem value="BIKE">Bike</SelectItem>
@@ -696,26 +912,15 @@ export default function RoutesPage() {
                       <SelectItem value="VAN">Van</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Base (₹)</Label>
-                  <Input type="number" min="0" placeholder="50" value={rule.basePrice} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, basePrice: e.target.value } : x))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Per km (₹)</Label>
-                  <Input type="number" min="0" step="0.1" placeholder="5" value={rule.pricePerKm} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, pricePerKm: e.target.value } : x))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Weight Surcharge (₹)</Label>
-                  <Input type="number" min="0" step="0.1" placeholder="0" value={rule.weightSurcharge} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, weightSurcharge: e.target.value } : x))} />
-                </div>
-                <div className="col-span-2 flex justify-end">
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive self-end" disabled={pricingRules.length === 1} onClick={() => setPricingRules((r) => r.filter((_, i) => i !== idx))}>
+                  <Input className="h-8 text-xs" type="number" min="0" placeholder="50" value={rule.basePrice} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, basePrice: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="5" value={rule.pricePerKm} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, pricePerKm: e.target.value } : x))} />
+                  <Input className="h-8 text-xs" type="number" min="0" step="0.1" placeholder="0" value={rule.weightSurcharge} onChange={(e) => setPricingRules((r) => r.map((x, i) => i === idx ? { ...x, weightSurcharge: e.target.value } : x))} />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" disabled={pricingRules.length === 1} onClick={() => setPricingRules((r) => r.filter((_, i) => i !== idx))}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
