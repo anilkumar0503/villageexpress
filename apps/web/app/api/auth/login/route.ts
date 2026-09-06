@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       success: true,
       data: {
         accessToken,
+        refreshToken, // also in body for mobile clients (cookies not available in native apps)
         user: {
           id: user.id,
           displayId: user.displayId,

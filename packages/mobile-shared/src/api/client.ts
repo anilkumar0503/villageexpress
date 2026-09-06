@@ -75,18 +75,21 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = await tokenStorage.getRefreshToken();
         if (refreshToken) {
-          const newAccessToken = await refreshAccessToken(refreshToken);
+          const result = await refreshAccessToken(refreshToken);
           
-          if (newAccessToken) {
-            await tokenStorage.setAccessToken(newAccessToken);
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          if (result) {
+            await tokenStorage.setAccessToken(result.accessToken);
+            // Store the new rotating refresh token if server provided one
+            if (result.refreshToken) {
+              await tokenStorage.setRefreshToken(result.refreshToken);
+            }
+            originalRequest.headers.Authorization = `Bearer ${result.accessToken}`;
             return apiClient(originalRequest);
           }
         }
       } catch (refreshError) {
-        // Refresh failed - logout user
+        // Refresh failed - clear tokens so next app open shows login
         await tokenStorage.clearTokens();
-        // Navigate to login (implementation depends on your navigation)
         return Promise.reject(error);
       }
     }
@@ -96,17 +99,20 @@ apiClient.interceptors.response.use(
   }
 );
 
-async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+async function refreshAccessToken(
+  refreshToken: string,
+): Promise<{ accessToken: string; refreshToken?: string } | null> {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-      refreshToken,
-    });
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
     
     if (response.data.success && response.data.data.accessToken) {
-      return response.data.data.accessToken;
+      return {
+        accessToken: response.data.data.accessToken,
+        refreshToken: response.data.data.refreshToken,
+      };
     }
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

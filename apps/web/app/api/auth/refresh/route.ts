@@ -4,7 +4,17 @@ import { verifyRefreshToken, signAccessToken, signRefreshToken } from '@/lib/aut
 
 export async function POST(req: NextRequest) {
   try {
-    const refreshToken = req.cookies.get('refresh_token')?.value
+    // Support refresh token from cookie (web) OR from request body (mobile clients)
+    let refreshToken = req.cookies.get('refresh_token')?.value
+
+    if (!refreshToken) {
+      try {
+        const body = await req.json()
+        refreshToken = body?.refreshToken
+      } catch {
+        // No body or invalid JSON
+      }
+    }
 
     if (!refreshToken) {
       return NextResponse.json({ success: false, error: 'No refresh token' }, { status: 401 })
@@ -28,6 +38,7 @@ export async function POST(req: NextRequest) {
       success: true,
       data: {
         accessToken,
+        refreshToken: newRefreshToken, // also in body for mobile clients
         user: {
           id: user.id,
           displayId: user.displayId,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -61,18 +61,27 @@ export default function MyBookingsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Use refs to avoid stale closures in async callbacks
+  const pageRef = useRef(1);
+  const loadingMoreRef = useRef(false);
+
   const fetchBookings = useCallback(async (reset = false) => {
-    const currentPage = reset ? 1 : page;
-    if (!reset) setLoadingMore(true);
+    // Guard against concurrent "load more" calls
+    if (!reset && loadingMoreRef.current) return;
+    if (!reset) {
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+    }
+
+    const page = reset ? 1 : pageRef.current;
 
     try {
       const res = await bookingsApi.getMyBookings({
         status: activeFilter || undefined,
-        page: currentPage,
+        page,
         pageSize: 15,
       });
       const items = res.data?.items ?? [];
@@ -80,36 +89,44 @@ export default function MyBookingsScreen({ navigation }: any) {
 
       if (reset) {
         setBookings(items);
-        setPage(2);
+        pageRef.current = 2;
+        setHasMore(items.length < total);
       } else {
-        setBookings(prev => [...prev, ...items]);
-        setPage(p => p + 1);
+        setBookings(prev => {
+          const next = [...prev, ...items];
+          setHasMore(next.length < total);
+          return next;
+        });
+        pageRef.current = page + 1;
       }
-      setHasMore(bookings.length + items.length < total);
     } catch {
       Alert.alert('Error', 'Could not load bookings. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [activeFilter, page, bookings.length]);
+  }, [activeFilter]);
 
+  // Re-fetch from page 1 whenever the filter changes
   useEffect(() => {
     setLoading(true);
-    setPage(1);
+    pageRef.current = 1;
     fetchBookings(true);
-  }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilter, fetchBookings]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setPage(1);
+    pageRef.current = 1;
     fetchBookings(true);
-  };
+  }, [fetchBookings]);
 
-  const loadMore = () => {
-    if (hasMore && !loadingMore) fetchBookings();
-  };
+  const loadMore = useCallback(() => {
+    if (hasMore && !loadingMoreRef.current) {
+      fetchBookings(false);
+    }
+  }, [hasMore, fetchBookings]);
 
   return (
     <View style={styles.root}>

@@ -9,17 +9,17 @@ import { biometricService } from '../../utils/biometric';
 const THEME = '#4CAF50';
 
 type LoginTab = 'email' | 'otp';
-type OtpStep = 'phone' | 'verify';
+type OtpStep = 'input' | 'verify';
 
 export default function LoginScreen({ navigation }: any) {
   // Email login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // OTP login
+  // OTP login (email-based to match server)
   const [tab, setTab] = useState<LoginTab>('email');
-  const [phone, setPhone] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [otpStep, setOtpStep] = useState<OtpStep>('phone');
+  const [otpStep, setOtpStep] = useState<OtpStep>('input');
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   // Biometric
@@ -28,7 +28,7 @@ export default function LoginScreen({ navigation }: any) {
   const [biometricType, setBiometricType] = useState<'fingerprint' | 'facial' | 'iris' | 'none'>('none');
   // Common
   const [isLoading, setIsLoading] = useState(false);
-  const { login, refreshUser } = useAuth();
+  const { login, loginWithOtp, refreshUser } = useAuth();
 
   // Init biometric state
   useEffect(() => {
@@ -80,15 +80,26 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   // ── Biometric Login ──────────────────────────────────────────────────────
+  // Uses stored refresh token to silently obtain a new access token, then
+  // fetches the current user — no password re-entry required.
   const handleBiometricLogin = useCallback(async () => {
     const label = biometricType === 'facial' ? 'Face ID' : 'Fingerprint';
-    const success = await biometricService.authenticate(`Authenticate with ${label} to log in`);
-    if (!success) return;
+    const authenticated = await biometricService.authenticate(`Authenticate with ${label} to log in`);
+    if (!authenticated) return;
+
     setIsLoading(true);
     try {
+      // refreshUser calls /auth/me; the axios interceptor will automatically
+      // use the stored refresh token to renew the access token if needed.
       await refreshUser();
+      // If refreshUser resolves without throwing, the user is now authenticated
+      // and the auth context will redirect to the main app.
     } catch {
-      Alert.alert('Session Expired', 'Please log in with your email and password.');
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please log in with your email and password.',
+        [{ text: 'OK' }],
+      );
       await biometricService.setEnabled(false);
       setBiometricEnabled(false);
     } finally {
@@ -96,32 +107,29 @@ export default function LoginScreen({ navigation }: any) {
     }
   }, [biometricType, refreshUser]);
 
-  // ── OTP Login ────────────────────────────────────────────────────────────
+  // ── OTP Login (email-based) ───────────────────────────────────────────────
   const handleSendOtp = async () => {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length < 10) return Alert.alert('Error', 'Enter a valid 10-digit phone number');
+    if (!isValidEmail(otpEmail)) return Alert.alert('Error', 'Please enter a valid email address');
     setSendingOtp(true);
     try {
-      await authApi.sendOtp({ phone: cleaned });
+      await authApi.sendOtp({ email: otpEmail.trim().toLowerCase() });
       setOtpStep('verify');
       setOtpCountdown(60);
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.error ?? 'Could not send OTP');
+      Alert.alert('Error', err?.response?.data?.error ?? 'Could not send OTP. Please try again.');
     } finally {
       setSendingOtp(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6) return Alert.alert('Error', 'Enter the 6-digit OTP sent to your phone');
+    if (otp.length < 6) return Alert.alert('Error', 'Enter the 6-digit OTP sent to your email');
     setIsLoading(true);
     try {
-      const res = await authApi.verifyOtp({ phone: phone.replace(/\D/g, ''), otp });
-      if (res.success) {
-        await refreshUser();
-      }
+      // loginWithOtp stores tokens and updates auth context in one step
+      await loginWithOtp(otpEmail.trim().toLowerCase(), otp);
     } catch (err: any) {
-      Alert.alert('Invalid OTP', err?.response?.data?.error ?? 'The OTP is incorrect or expired');
+      Alert.alert('Invalid OTP', err?.response?.data?.error ?? 'The OTP is incorrect or has expired');
     } finally {
       setIsLoading(false);
     }
@@ -153,11 +161,11 @@ export default function LoginScreen({ navigation }: any) {
               style={[styles.tab, tab === 'otp' && styles.tabActive]}
               onPress={() => setTab('otp')}
             >
-              <Text style={[styles.tabText, tab === 'otp' && styles.tabTextActive]}>Phone OTP</Text>
+              <Text style={[styles.tabText, tab === 'otp' && styles.tabTextActive]}>Email OTP</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Email Login */}
+          {/* Email / Password Login */}
           {tab === 'email' && (
             <>
               <TextInput
@@ -190,7 +198,7 @@ export default function LoginScreen({ navigation }: any) {
                 {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Login</Text>}
               </TouchableOpacity>
 
-              {/* Biometric button */}
+              {/* Biometric button — only shown when device biometric is enrolled & user has enabled it */}
               {showBiometric && !isLoading && (
                 <TouchableOpacity style={styles.biometricBtn} onPress={handleBiometricLogin}>
                   <Text style={styles.biometricIcon}>{biometricIcon}</Text>
@@ -200,19 +208,20 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
 
-          {/* OTP Login */}
+          {/* Email OTP Login */}
           {tab === 'otp' && (
             <>
-              {otpStep === 'phone' ? (
+              {otpStep === 'input' ? (
                 <>
-                  <Text style={styles.otpHint}>We'll send a 6-digit OTP to your registered mobile number.</Text>
+                  <Text style={styles.otpHint}>Enter your email and we'll send a 6-digit code.</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Mobile Number (10 digits)"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    maxLength={10}
+                    placeholder="Email Address"
+                    value={otpEmail}
+                    onChangeText={setOtpEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoCorrect={false}
                     editable={!sendingOtp}
                   />
                   <TouchableOpacity
@@ -225,7 +234,7 @@ export default function LoginScreen({ navigation }: any) {
                 </>
               ) : (
                 <>
-                  <Text style={styles.otpHint}>OTP sent to +91-{phone}. Enter the 6-digit code below.</Text>
+                  <Text style={styles.otpHint}>OTP sent to {otpEmail}. Enter the 6-digit code below.</Text>
                   <TextInput
                     style={[styles.input, styles.otpInput]}
                     placeholder="_ _ _ _ _ _"
@@ -250,8 +259,8 @@ export default function LoginScreen({ navigation }: any) {
                         <Text style={styles.resendLink}>Resend OTP</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity onPress={() => { setOtpStep('phone'); setOtp(''); }}>
-                      <Text style={styles.changePhone}>Change Number</Text>
+                    <TouchableOpacity onPress={() => { setOtpStep('input'); setOtp(''); }}>
+                      <Text style={styles.changeEmail}>Change Email</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -293,7 +302,7 @@ const styles = StyleSheet.create({
   resendRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 16 },
   resendCountdown: { color: '#888', fontSize: 13 },
   resendLink: { color: THEME, fontSize: 13, fontWeight: '600' },
-  changePhone: { color: '#888', fontSize: 13, textDecorationLine: 'underline' },
+  changeEmail: { color: '#888', fontSize: 13, textDecorationLine: 'underline' },
   registerRow: { alignItems: 'center', marginTop: 16 },
   registerText: { fontSize: 15, color: '#666' },
   registerLink: { color: THEME, fontWeight: 'bold' },

@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    let user = await prisma.user.findUnique({ where: { email } })
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: { userRoles: { include: { role: true } } },
+    }) as any
 
     if (!user) {
       const customerRole = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } })
@@ -50,7 +53,8 @@ export async function POST(req: NextRequest) {
             ? { create: { roleId: customerRole.id, isPrimary: true } }
             : undefined,
         },
-      })
+        include: { userRoles: { include: { role: true } } },
+      }) as any
     }
 
     if (!user.isActive) {
@@ -67,11 +71,13 @@ export async function POST(req: NextRequest) {
       success: true,
       data: {
         accessToken,
+        refreshToken, // also in body for mobile clients (cookies not available in native apps)
         user: {
           id: user.id,
           displayId: user.displayId,
           name: user.name,
           email: user.email,
+          roles: (user.userRoles ?? []).map((ur: any) => ur.role.name),
           isNewUser: !user.phone,
         },
       },

@@ -75,7 +75,7 @@ export type { Referral } from './api';
 
 // Auth Context
 export { AuthProvider, useAuth, setTokenStorage as setAuthTokenStorage } from './auth/context';
-export type { TokenStorage as AuthTokenStorage } from './auth/context';
+export type { TokenStorage as AuthTokenStorage, AuthContextType } from './auth/context';
 
 // Utilities
 export {

@@ -30,11 +30,12 @@ export function setTokenStorage(storage: TokenStorage) {
   tokenStorage = storage;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithOtp: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -76,9 +77,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login({ email, password });
     
     if (response.success) {
-      const { accessToken, user: userData } = response.data;
+      const { accessToken, refreshToken, user: userData } = response.data;
       
       await tokenStorage.setAccessToken(accessToken);
+      if (refreshToken) await tokenStorage.setRefreshToken(refreshToken);
+      await tokenStorage.setUser(userData);
+      setUser(userData);
+    }
+  };
+
+  const loginWithOtp = async (email: string, code: string) => {
+    const response = await authApi.verifyOtp({ email, code });
+    
+    if (response.success) {
+      const { accessToken, refreshToken, user: userData } = response.data;
+      
+      await tokenStorage.setAccessToken(accessToken);
+      if (refreshToken) await tokenStorage.setRefreshToken(refreshToken);
       await tokenStorage.setUser(userData);
       setUser(userData);
     }
@@ -96,14 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    try {
-      const response = await authApi.getCurrentUser();
-      if (response.success) {
-        setUser(response.data);
-        await tokenStorage.setUser(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
+    // Throws on failure — callers should handle errors
+    const response = await authApi.getCurrentUser();
+    if (response.success) {
+      setUser(response.data);
+      await tokenStorage.setUser(response.data);
     }
   };
 
@@ -114,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithOtp,
         logout,
         refreshUser,
       }}

@@ -15,12 +15,12 @@ export const registerSchema = z.object({
 });
 
 export const otpSchema = z.object({
-  phone: z.string().min(10, 'Invalid phone number'),
+  email: z.string().email('Invalid email address'),
 });
 
 export const verifyOtpSchema = z.object({
-  phone: z.string().min(10, 'Invalid phone number'),
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  email: z.string().email('Invalid email address'),
+  code: z.string().length(6, 'OTP must be 6 digits'),
 });
 
 // TypeScript types
@@ -37,24 +37,26 @@ export interface RegisterInput {
 }
 
 export interface OtpInput {
-  phone: string;
+  email: string;
 }
 
 export interface VerifyOtpInput {
-  phone: string;
-  otp: string;
+  email: string;
+  code: string;
 }
 
 export interface AuthResponse {
   success: boolean;
   data: {
     accessToken: string;
+    refreshToken?: string; // present when server returns it (mobile-friendly)
     user: {
       id: string;
       displayId: string;
       name: string;
       email: string;
       roles: string[];
+      isNewUser?: boolean;
     };
   };
 }
