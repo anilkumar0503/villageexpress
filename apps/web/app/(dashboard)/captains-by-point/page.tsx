@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { LocationCombobox } from '@/components/ui/location-combobox'
 import { useAuth } from '@/hooks/use-auth'
 
 type Captain = {
@@ -38,6 +39,7 @@ type Location = {
   pointName: string
   village: string
   district: string
+  state: string
 }
 
 const AVAILABILITY_ICONS: Record<string, React.ElementType> = {
@@ -109,18 +111,12 @@ export default function CaptainsByPointPage() {
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
-          <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a point..." />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  {loc.pointName} - {loc.village}, {loc.district}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LocationCombobox
+            locations={locations}
+            value={selectedLocationId}
+            onValueChange={setSelectedLocationId}
+            placeholder="Search and select a point..."
+          />
         </div>
         <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
